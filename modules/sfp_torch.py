@@ -68,8 +68,7 @@ class sfp_torch(SpiderFootPlugin):
     def producedEvents(self):
         return [
             "DARKNET_MENTION_URL",
-            "DARKNET_MENTION_CONTENT",
-            "SEARCH_ENGINE_WEB_CONTENT"
+            "DARKNET_MENTION_CONTENT"
         ]
 
     def handleEvent(self, event):
@@ -128,7 +127,6 @@ class sfp_torch(SpiderFootPlugin):
                 if link in self.results:
                     continue
 
-                linkcount += 1
                 self.results[link] = True
                 self.debug(f"Found a darknet mention: {link}")
                 if self.sf.urlFQDN(link).endswith(".onion"):
@@ -147,6 +145,7 @@ class sfp_torch(SpiderFootPlugin):
                             continue
                         evt = SpiderFootEvent("DARKNET_MENTION_URL", link, self.__name__, event)
                         self.notifyListeners(evt)
+                        linkcount += 1
 
                         try:
                             startIndex = res['content'].index(eventData) - 120
@@ -163,13 +162,9 @@ class sfp_torch(SpiderFootPlugin):
                     else:
                         evt = SpiderFootEvent("DARKNET_MENTION_URL", link, self.__name__, event)
                         self.notifyListeners(evt)
+                        linkcount += 1
 
-            if linkcount > 0:
-                # Submit the search results for analysis elsewhere
-                evt = SpiderFootEvent("SEARCH_ENGINE_WEB_CONTENT", data['content'],
-                                      self.__name__, event)
-                self.notifyListeners(evt)
-            else:
+            if linkcount == 0:
                 # No more pages
                 return
 

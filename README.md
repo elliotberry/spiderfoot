@@ -95,20 +95,20 @@ To install and run SpiderFoot, you need at least Python 3.7 and a number of Pyth
 #### Stable build (packaged release):
 
 ```
-$ wget https://github.com/smicallef/spiderfoot/archive/v4.0.tar.gz
-$ tar zxvf v4.0.tar.gz
-$ cd spiderfoot-4.0
-$ pip3 install -r requirements.txt
-$ python3 ./sf.py -l 127.0.0.1:5001
+ wget https://github.com/smicallef/spiderfoot/archive/v4.0.tar.gz
+ tar zxvf v4.0.tar.gz
+ cd spiderfoot-4.0
+ pip3 install -r requirements.txt
+ python3 ./sf.py -l 127.0.0.1:5001
 ```
 
 #### Development build (cloning git master branch):
 
 ```
-$ git clone https://github.com/smicallef/spiderfoot.git
-$ cd spiderfoot
-$ pip3 install -r requirements.txt
-$ python3 ./sf.py -l 127.0.0.1:5001
+ git clone https://github.com/smicallef/spiderfoot.git
+ cd spiderfoot
+ pip3 install -r requirements.txt
+ python3 ./sf.py -l 127.0.0.1:5001
 ```
 
 Check out the [documentation](https://www.spiderfoot.net/documentation) and our [asciinema videos](https://asciinema.org/~spiderfoot) for more tutorials.
@@ -144,7 +144,6 @@ Account Finder|Look for possible associated accounts on over 500 social and othe
 [Archive.org](https://archive.org/)|Identifies historic versions of interesting files/pages from the Wayback Machine.|Free API
 [ARIN](https://www.arin.net/)|Queries ARIN registry for contact information.|Free API
 [Azure Blob Finder](https://azure.microsoft.com/en-in/services/storage/blobs/)|Search for potential Azure blobs associated with the target and attempt to list their contents.|Free API
-[Bad Packets](https://badpackets.net)|Obtain information about any malicious activities involving IP addresses found|Commercial API
 Base64 Decoder|Identify Base64-encoded strings in URLs, often revealing interesting hidden information.|Internal
 [BGPView](https://bgpview.io/)|Obtain network information from BGPView API.|Free API
 Binary String Extractor|Attempt to identify strings in binary content.|Internal
