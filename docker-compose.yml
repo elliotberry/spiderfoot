@@ -22,6 +22,8 @@ services:
       context: ./
     volumes:
       - ../spiderfoot-data-1:/var/lib/spiderfoot
+      - ../spiderfoot-web-data:/home/spiderfoot/spiderfoot/static
+      - ../spiderfoot-web-data-templates:/home/spiderfoot/spiderfoot/templates
     image: spiderfoot
     container_name: spiderfoot
     ports:
@@ -30,3 +32,5 @@ services:
 
 volumes:
   spiderfoot-data-1:
+  spiderfoot-web-data:
+  spiderfoot-web-data-templates:
