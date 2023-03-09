@@ -18,6 +18,7 @@ version: "3"
 
 services:
   spiderfoot:
+    platform: linux/amd64
     build:
       context: ./
     volumes:

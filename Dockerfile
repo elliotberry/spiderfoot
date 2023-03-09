@@ -6,7 +6,7 @@
 # Written by: TheTechromancer
 #
 
-FROM --platform=linux/arm64  python:3
+FROM python:3
 
 # Install tools/dependencies from apt
 RUN apt-get -y update && apt-get -y install nbtscan onesixtyone nmap
