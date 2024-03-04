@@ -4,6 +4,7 @@ services:
   spiderfoot:
     build:
       context: ./
+      dockerfile: Dockerfile.yolo
     volumes:
       - ../spiderfoot-data:/var/lib/spiderfoot
       - ../spiderfoot-web-data:/home/spiderfoot/spiderfoot/static

@@ -1,39 +1,3 @@
-#
-# Spiderfoot Dockerfile
-#
-# http://www.spiderfoot.net
-#
-# Written by: Michael Pellon <m@pellon.io>
-# Updated by: Chandrapal <bnchandrapal@protonmail.com>
-# Updated by: Steve Micallef <steve@binarypool.com>
-# Updated by: Steve Bate <svc-spiderfoot@stevebate.net>
-#    -> Inspired by https://github.com/combro2k/dockerfiles/tree/master/alpine-spiderfoot
-#
-# Usage:
-#
-#   sudo docker build -t spiderfoot .
-#   sudo docker run -p 5001:5001 --security-opt no-new-privileges spiderfoot
-#
-# Using Docker volume for spiderfoot data
-#
-#   sudo docker run -p 5001:5001 -v /mydir/spiderfoot:/var/lib/spiderfoot spiderfoot
-#
-# Using SpiderFoot remote command line with web server
-#
-#   docker run --rm -it spiderfoot sfcli.py -s http://my.spiderfoot.host:5001/
-#
-# Running spiderfoot commands without web server (can optionally specify volume)
-#
-#   sudo docker run --rm spiderfoot sf.py -h
-#
-# Running a shell in the container for maintenance
-#   sudo docker run -it --entrypoint /bin/sh spiderfoot
-#
-# Running spiderfoot unit tests in container
-#
-#   sudo docker build -t spiderfoot-test --build-arg REQUIREMENTS=test/requirements.txt .
-#   sudo docker run --rm spiderfoot-test -m pytest --flake8 .
-
 FROM alpine:3.12.4 AS build
 ARG REQUIREMENTS=requirements.txt
 RUN apk add --no-cache gcc git curl python3 python3-dev py3-pip swig tinyxml-dev \
@@ -46,8 +10,6 @@ RUN ls
 RUN echo "$REQUIREMENTS"
 RUN pip3 install -U pip
 RUN pip3 install -r "$REQUIREMENTS"
-
-
 
 FROM alpine:3.13.0
 WORKDIR /home/spiderfoot
