@@ -1,10 +1,10 @@
-version: "3"
+version: '3.8'
 
 services:
   spiderfoot:
     build:
       context: ./
-      dockerfile: Dockerfile.yolo
+      dockerfile: ./Dockerfile.full
     volumes:
       - ../spiderfoot-data:/var/lib/spiderfoot
       - ../spiderfoot-web-data:/home/spiderfoot/spiderfoot/static
@@ -12,7 +12,7 @@ services:
     container_name: spider-city
     ports:
       - "5001:5001"
-    restart: unless-stopped
+    restart: no
     image: spiderfoot
   
 volumes:
