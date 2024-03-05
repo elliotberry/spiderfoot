@@ -1,8 +1,8 @@
-FROM alpine:3.12.4 AS build
+FROM alpine:3.19.1 AS build
 ARG REQUIREMENTS=requirements.txt
 RUN apk add --no-cache gcc git curl python3 python3-dev py3-pip swig tinyxml-dev \
  python3-dev musl-dev openssl-dev libffi-dev libxslt-dev libxml2-dev jpeg-dev \
- openjpeg-dev zlib-dev cargo rust
+ openjpeg-dev zlib-dev cargo rust nmap
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin":$PATH
 COPY $REQUIREMENTS requirements.txt ./
@@ -10,6 +10,16 @@ RUN ls
 RUN echo "$REQUIREMENTS"
 RUN pip3 install -U pip
 RUN pip3 install -r "$REQUIREMENTS"
+RUN pip install dnstwist
+
+WORKDIR /tools
+RUN git clone https://github.com/Tuhinshubhra/CMSeeK && cd CMSeeK \
+    && pip install -r requirements.txt && mkdir Results
+
+# Install wafw00f
+RUN git clone https://github.com/EnableSecurity/wafw00f \
+    && cd wafw00f \
+    && python3 setup.py install
 
 FROM alpine:3.13.0
 WORKDIR /home/spiderfoot
