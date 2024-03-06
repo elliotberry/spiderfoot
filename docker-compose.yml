@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  spiderfoot:
+  spiderfootsy:
     build:
       context: ./
       dockerfile: ./Dockerfile.full
@@ -9,7 +9,7 @@ services:
       - ../spiderfoot-data:/var/lib/spiderfoot
       - ../spiderfoot-web-data:/home/spiderfoot/spiderfoot/static
       - ../spiderfoot-web-data-templates:/home/spiderfoot/spiderfoot/templates
-    container_name: spider-city
+    container_name: spidertown
     ports:
       - "5001:5001"
     restart: no
