@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "engine": "darwin/arm64|Transformer|1.40.11|latest|latest",
+  "containerized": false,
+  "host_distro": {
+    "name": "",
+    "version": "",
+    "display_name": "Monterey (12.6)"
+  },
+  "type": "images",
+  "state": "done"
+}
