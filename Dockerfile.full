@@ -1,7 +1,7 @@
-FROM python:3
+FROM python:3.13.0a5-bookworm
 
 # Install tools/dependencies from apt
-RUN apt-get -y update && apt-get -y install nbtscan onesixtyone nmap
+RUN apt-get -y update && apt-get -y install nbtscan onesixtyone nmap chromium
 
 # Compile other tools from source
 RUN mkdir /tools || true
@@ -23,7 +23,7 @@ RUN git clone https://github.com/urbanadventurer/WhatWeb \
 RUN groupadd spiderfoot \
     && useradd -m -g spiderfoot -d /home/spiderfoot -s /sbin/nologin \
     -c "SpiderFoot User" spiderfoot
-
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 # Install RetireJS
 RUN apt remove -y cmdtest \
     && apt remove -y yarn \
