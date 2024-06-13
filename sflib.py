@@ -179,7 +179,7 @@ class SpiderFoot:
 
         return val
 
-    def error(self, message: str) -> None:
+    def error(self, message: str, **kwargs) -> None:
         """Print and log an error message
 
         Args:
