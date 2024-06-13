@@ -54,7 +54,7 @@ RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v2.6.5/nuc
 # Install testssl.sh
 RUN apt-get install -y bsdmainutils dnsutils coreutils
 RUN git clone https://github.com/drwetter/testssl.sh.git
-
+RUN pip install --upgrade setuptools
 # Install Snallygaster and TruffleHog
 RUN pip3 install snallygaster trufflehog
 
