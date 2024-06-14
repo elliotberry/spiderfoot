@@ -1,7 +1,7 @@
-FROM python:3.13.0a5-bookworm
+FROM python:3
 
 # Install tools/dependencies from apt
-RUN apt-get -y update && apt-get -y install nbtscan onesixtyone nmap chromium
+RUN apt-get -y update && apt-get -y install nbtscan onesixtyone nmap
 
 # Compile other tools from source
 RUN mkdir /tools || true
@@ -23,7 +23,7 @@ RUN git clone https://github.com/urbanadventurer/WhatWeb \
 RUN groupadd spiderfoot \
     && useradd -m -g spiderfoot -d /home/spiderfoot -s /sbin/nologin \
     -c "SpiderFoot User" spiderfoot
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
 # Install RetireJS
 RUN apt remove -y cmdtest \
     && apt remove -y yarn \
@@ -54,7 +54,7 @@ RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v2.6.5/nuc
 # Install testssl.sh
 RUN apt-get install -y bsdmainutils dnsutils coreutils
 RUN git clone https://github.com/drwetter/testssl.sh.git
-RUN pip install --upgrade setuptools
+
 # Install Snallygaster and TruffleHog
 RUN pip3 install snallygaster trufflehog
 
