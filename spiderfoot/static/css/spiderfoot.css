@@ -1,7 +1,13 @@
 body {
   padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
 }
-
+body::-webkit-scrollbar {
+  width: 1em;
+}
+ ul.nav {
+  max-height: 700px;
+  overflow-y: scroll;
+ }
 .navbar-brand {
   image-rendering: -o-crisp-edges; /* Opera */
   image-rendering: -webkit-optimize-contrast; /* Webkit (non-standard naming) */
