@@ -2,13 +2,14 @@ services:
   spiderfootsy:
     build:
       context: ./
-      dockerfile: ./Dockerfile.mine
+      dockerfile: ./Dockerfile
     volumes:
       - ../spiderfoot-data:/var/lib/spiderfoot
       - ../spiderfoot-logs:/var/lib/spiderfoot/log
     container_name: spidertown
     ports:
       - "5001:5001"
+      - "9051:9051"
     restart: no
     image: spiderfoot
   
