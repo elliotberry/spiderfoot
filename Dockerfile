@@ -1,102 +1,109 @@
-# Stage 1: Build Stage
-FROM python:3.9.19-slim-bullseye as build
+FROM python:3.9.19-bullseye
 
-# Install build tools/dependencies from apt
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    golang \
-    ruby \
-    ruby-dev \
-    bundler \
-    curl \
-    gnupg \
-    unzip \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Install tools/dependencies from apt
+RUN apt-get -y update && apt-get -y install nbtscan onesixtyone nmap
 
-# Set up environment variables
+# Compile other tools from source
+RUN mkdir /tools || true
+WORKDIR /tools
+
+# Install Golang tools
+RUN apt-get -y update && apt-get -y install golang
 ENV GOPATH="/go"
 ENV PATH="$GOPATH/bin:$PATH"
+RUN mkdir -p "$GOPATH/src" "$GOPATH/bin"
 
+# Install Ruby tools for WhatWeb
+RUN apt-get -y update && apt-get -y install ruby ruby-dev bundler
 # Install WhatWeb
-RUN gem install rchardet mongo json \
-    && git clone https://github.com/urbanadventurer/WhatWeb /tools/WhatWeb \
-    && cd /tools/WhatWeb && bundle install
+RUN git clone https://github.com/urbanadventurer/WhatWeb \
+    && gem install rchardet mongo json && cd /tools/WhatWeb \
+    && bundle install && cd /tools
+
+RUN groupadd spiderfoot \
+    && useradd -m -g spiderfoot -d /home/spiderfoot -s /sbin/nologin \
+    -c "SpiderFoot User" spiderfoot
 
 # Install RetireJS
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-    && echo 'deb https://dl.yarnpkg.com/debian/ stable main' > /etc/apt/sources.list.d/yarn.list \
+RUN apt remove -y cmdtest \
+    && apt remove -y yarn \
+    && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+    && echo 'deb https://dl.yarnpkg.com/debian/ stable main' |tee /etc/apt/sources.list.d/yarn.list \
     && apt-get update \
-    && apt-get install -y yarn nodejs \
+    && apt-get install yarn -y \
+    && yarn install \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
     && npm install -g retire
 
+# Install Google Chrome the New Way (Not via apt-key)
+#RUN wget -qO - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
+#    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
+#    && apt -y update && apt install --allow-unauthenticated -y google-chrome-stable
+
 # Install Wappalyzer
-RUN git clone https://github.com/dochne/wappalyzer.git /tools/wappalyzer \
-    && cd /tools/wappalyzer && yarn install
+RUN git clone https://github.com/dochne/wappalyzer.git \
+    && cd wappalyzer \
+    && yarn install
 
 # Install Nuclei
-RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v2.6.5/nuclei_2.6.5_linux_amd64.zip -O /tmp/nuclei.zip \
-    && unzip /tmp/nuclei.zip -d /tools \
-    && git clone https://github.com/projectdiscovery/nuclei-templates.git /tools/nuclei-templates
+RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v2.6.5/nuclei_2.6.5_linux_amd64.zip \
+    && unzip nuclei_2.6.5_linux_amd64.zip \
+    && git clone https://github.com/projectdiscovery/nuclei-templates.git
 
 # Install testssl.sh
-RUN git clone https://github.com/drwetter/testssl.sh.git /tools/testssl.sh
+RUN apt-get install -y bsdmainutils dnsutils coreutils
+RUN git clone https://github.com/drwetter/testssl.sh.git
 
-# Install CMSeeK
-RUN git clone https://github.com/Tuhinshubhra/CMSeeK /tools/CMSeeK \
-    && cd /tools/CMSeeK && pip install -r requirements.txt && mkdir Results
+# Install Snallygaster and TruffleHog
+RUN pip3 install snallygaster trufflehog
 
-# Install wafw00f
-RUN git clone https://github.com/EnableSecurity/wafw00f /tools/wafw00f \
-    && cd /tools/wafw00f && python3 setup.py install
-
-# Stage 2: Final Stage
-FROM python:3.9.19-slim-bullseye
-
-# Copy tools from build stage
-COPY --from=build /tools /tools
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    nbtscan \
-    onesixtyone \
-    nmap \
-    bsdmainutils \
-    dnsutils \
-    coreutils \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Add spiderfoot user
-RUN groupadd spiderfoot && useradd -m -g spiderfoot -d /home/spiderfoot -s /sbin/nologin -c "SpiderFoot User" spiderfoot
-
-# Set up SpiderFoot directories
+# Place database and logs outside installation directory
 ENV SPIDERFOOT_DATA /var/lib/spiderfoot
 ENV SPIDERFOOT_LOGS /var/lib/spiderfoot/log
 ENV SPIDERFOOT_CACHE /var/lib/spiderfoot/cache
 
-RUN mkdir -p $SPIDERFOOT_DATA $SPIDERFOOT_LOGS $SPIDERFOOT_CACHE \
-    && chown spiderfoot:spiderfoot $SPIDERFOOT_DATA $SPIDERFOOT_LOGS $SPIDERFOOT_CACHE
+RUN mkdir -p $SPIDERFOOT_DATA || true \
+    && mkdir -p $SPIDERFOOT_LOGS || true \
+    && mkdir -p $SPIDERFOOT_CACHE || true \
+    && chown spiderfoot:spiderfoot $SPIDERFOOT_DATA \
+    && chown spiderfoot:spiderfoot $SPIDERFOOT_LOGS \
+    && chown spiderfoot:spiderfoot $SPIDERFOOT_CACHE
 
-# Copy project files and set up virtual environment
 WORKDIR /home/spiderfoot
 COPY . .
+
 ENV VIRTUAL_ENV=/opt/venv
-RUN python -m venv "$VIRTUAL_ENV" \
-    && chown -R spiderfoot:spiderfoot /tools "$VIRTUAL_ENV" /home/spiderfoot
-
-USER spiderfoot
+RUN mkdir -p "$VIRTUAL_ENV" || true
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+RUN python -m venv "$VIRTUAL_ENV"
 
-RUN pip install -U pip \
-    && pip install -r requirements.txt
+ARG REQUIREMENTS=requirements.txt
+COPY "$REQUIREMENTS" requirements.txt
+
+RUN chown -R spiderfoot:spiderfoot /tools
+RUN chown -R spiderfoot:spiderfoot "$VIRTUAL_ENV"
+RUN chown -R spiderfoot:spiderfoot "/home/spiderfoot"
+RUN chown -R spiderfoot:spiderfoot .
+USER spiderfoot
+
+RUN pip install -U pip
+RUN pip install -r "$REQUIREMENTS"
 
 # Install Python tools
 RUN pip install dnstwist
+# CMSeeK
+WORKDIR /tools
+RUN git clone https://github.com/Tuhinshubhra/CMSeeK && cd CMSeeK \
+    && pip install -r requirements.txt && mkdir Results
 
-# Set ownership
-RUN chown -R spiderfoot:spiderfoot /tools "$VIRTUAL_ENV" /home/spiderfoot
-
+# Install wafw00f
+RUN git clone https://github.com/EnableSecurity/wafw00f \
+    && cd wafw00f \
+    && python3 setup.py install
+WORKDIR /home/spiderfoot
+USER spiderfoot
+RUN ls -la
 EXPOSE 5001
 
 # Run the application
