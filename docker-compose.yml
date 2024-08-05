@@ -2,7 +2,7 @@ services:
   spiderfootsy:
     build:
       context: ./
-      dockerfile: ./Dockerfile
+      dockerfile: ./Dockerfile.new
     volumes:
       - ../spiderfoot-data:/var/lib/spiderfoot
       - ../spiderfoot-logs:/var/lib/spiderfoot/log
