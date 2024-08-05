@@ -1,0 +1,10 @@
+li[data-has-apikey="false"]::after {
+    content: "No API Key";
+    font-weight: 400;
+    font-size: .8em;
+    display: inline-block;
+    position: absolute;
+    margin: 0px 0px 0px 15px;
+    margin-top: -14px;
+    color: hotpink;
+}
