@@ -24,15 +24,22 @@
 <ul class="nav nav-pills nav-stacked col-md-3">
 <li id='tab_global' class="active"><a href="#">Global</a></li>
 % for mod in sorted(opts['__modules__'].keys()):
+
     <% keylist = dict((k, v) for k, v in opts['__modules__'][mod]['opts'].items() if not k.startswith('_')) %>
     % if len(keylist) > 0:
         <% keyicon = "" %>
         <% apikeylist = dict((k, v) for k, v in opts['__modules__'][mod]['opts'].items() if k.find("api_key") >= 0) %>
         <% 
-        if len(apikeylist) > 0: 
+        if len(apikeylist) > 0:
             keyicon = "&nbsp;&nbsp;<i class=\"glyphicon glyphicon-lock\"></i>"
         %>
-        <li id='tab_${mod}'><a href='#' onclick='switchTab("${mod}");' >${opts['__modules__'][mod]['name']}${keyicon}</a></li>
+        <li 
+        % for k, v in apikeylist.items():
+            % if v == "":
+                data-has-apikey="false"
+            % endif
+        % endfor
+        id='tab_${mod}'><a href='#' onclick='switchTab("${mod}");' >${opts['__modules__'][mod]['name']}${keyicon}</a></li>
     % endif
 % endfor
 </ul>
