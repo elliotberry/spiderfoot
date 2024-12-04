@@ -1,16 +1,14 @@
 services:
-  spidertown:
+  spiderfoot:
     build:
       context: ./
       dockerfile: ./Dockerfile
     volumes:
       - ../spiderfoot-data:/var/lib/spiderfoot
-    container_name: spidertown
     ports:
       - "5001:5001"
       - "9051:9051"
     restart: no
-    image: spiderfoot
   
 volumes:
   spiderfoot-data:
