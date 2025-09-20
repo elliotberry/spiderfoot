@@ -19,8 +19,8 @@
     <button id="btn-reset-settings" class='btn btn-danger'>Reset to Factory Default</button>
 <br><br>
 </div>
-
-<div class="tabbable tabs-left">
+<div class="opts-container">
+<div class="tabbable tabs-left lefty-navo">
 <ul class="nav nav-pills nav-stacked col-md-3">
 <li id='tab_global' class="active"><a href="#">Global</a></li>
 % for mod in sorted(opts['__modules__'].keys()):
@@ -37,6 +37,8 @@
         % for k, v in apikeylist.items():
             % if v == "":
                 data-has-apikey="false"
+            % else :
+                data-has-apikey="true"
             % endif
         % endfor
         id='tab_${mod}'><a href='#' onclick='switchTab("${mod}");' >${opts['__modules__'][mod]['name']}${keyicon}</a></li>
@@ -45,7 +47,7 @@
 </ul>
 </div>
 
-<div class="tab-content col-md-9">
+<div class="tab-content col-md-9 right-side-opts">
 
 <div id='optsect_global' class="tab-pane active">
 <h4>Global Settings</h4>
@@ -200,7 +202,7 @@
     </div>
 % endfor
 </div>
-</div> <!-- /tabbable tabs-left -->
+</div></div> <!-- /tabbable tabs-left -->
 </form>
 <br><br>
 <%include file="FOOTER.tmpl"/>

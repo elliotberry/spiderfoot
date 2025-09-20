@@ -1,13 +1,39 @@
+:root {
+  --var-font-family: 'Fira Code', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+html,
+body,
+.tablesorter-default {
+  font-family: var(--var-font-family) !important;
+  font-weight: 300 !important;
+}
 body {
   padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
 }
 body::-webkit-scrollbar {
   width: 1em;
 }
- ul.nav {
-  max-height: 700px;
+
+.opts-container {
+  display: flex;
+  gap: 1rem; /* optional spacing between columns */
+  align-items: stretch; /* forces equal height */
+}
+.opts-container > div {
+  flex: 1; /* both columns take equal width */
+  display: flex;
+  flex-direction: column;
+}
+.opts-container .nav.nav-pills.nav-stacked {
+  width: 100% !important;
+}
+
+.lefty-navo {
+  max-height: 0px;
   overflow-y: scroll;
- }
+  width: 100% !important;
+}
+
 .navbar-brand {
   image-rendering: -o-crisp-edges; /* Opera */
   image-rendering: -webkit-optimize-contrast; /* Webkit (non-standard naming) */
@@ -123,7 +149,7 @@ a.link:hover {
   background: #fff;
 }
 
-input[type="checkbox"] {
+input[type='checkbox'] {
   width: 14px;
   height: 14px;
   margin: 0px;
@@ -136,7 +162,7 @@ input[type="checkbox"] {
 
 /* THEME TOGGLER PROPERTIES */
 
-#toggler-text{
+#toggler-text {
   padding-left: 15px;
 }
 .switch {
@@ -145,10 +171,9 @@ input[type="checkbox"] {
   width: 42px;
   height: 21px;
   margin-top: 1.3rem;
-  
 }
 
-.switch input { 
+.switch input {
   opacity: 0;
   width: 0;
   height: 0;
@@ -162,28 +187,28 @@ input[type="checkbox"] {
   right: 0;
   bottom: 0;
   background-color: #ccc;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
 }
 
 .slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 14px;
   width: 14px;
   left: 4px;
   bottom: 4px;
   background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
 }
 
 input:checked + .slider {
-  background-color: #059CD7;
+  background-color: #059cd7;
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px #059CD7;
+  box-shadow: 0 0 1px #059cd7;
 }
 
 input:checked + .slider:before {
@@ -206,4 +231,23 @@ input:checked + .slider:before {
 
 .download-button {
   padding: 6px 12px !important;
+}
+
+
+/* additions to make the options section more intuitive */
+li[data-has-apikey="false"]::after {
+    content: "No API Key";
+    font-weight: 400;
+    font-size: .8em;
+    display: inline-block;
+    position: absolute;
+    margin: 0px 0px 0px 15px;
+    margin-top: -14px;
+    color: hotpink;
+}
+li[data-has-apikey="false"] a {
+    color: hotpink;
+}
+li[data-has-apikey="true"] a { 
+       color: #2ecc71;
 }

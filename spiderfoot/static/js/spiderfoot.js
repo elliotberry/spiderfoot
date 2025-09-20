@@ -373,38 +373,6 @@ sf.fetchData = function (url, postData, postFunc) {
   });
 };
 
-
-/*
-sf.simpleTable = function(id, data, cols, linkcol=null, linkstring=null, sortable=true, rowfunc=null) {
-	var table = "<table id='" + id + "' ";
-	table += "class='table table-bordered table-striped tablesorter'>";
-	table += "<thead><tr>";
-	for (var i = 0; i < cols.length; i++) {
-		table += "<th>" + cols[i] + "</th>";
-	}
-	table += "</tr></thead><tbody>";
-
-	for (var i = 1; i < data.length; i++) {
-		table += "<tr>";
-		for (var c = 0; c < data[i].length; c++) {
-			if (c == linkcol) {
-				if (linkstring.indexOf("%%col") > 0) {
-				}
-				table += "<td>" + <a class='link' onClick='" + linkstring + "'>";
-				table += data[i][c] + "</a></td>"
-			} else {
-				table += "<td>" + data[i][c] + "</td>";
-			}
-		}
-		table += "</tr>";
-	}
-	table += "</tbody></table>";
-
-	return table;
-}
-
-*/
-
 sf.updateTooltips = function () {
   $(document).ready(function () {
     if ($('[rel=tooltip]').length) {
