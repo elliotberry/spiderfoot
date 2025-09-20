@@ -5,6 +5,8 @@ services:
       dockerfile: ./Dockerfile
     volumes:
       - ../spiderfoot-data:/var/lib/spiderfoot
+      - ../spiderfoot-static:/home/spiderfoot/spiderfoot/static
+      - ../spiderfoot-templates:/home/spiderfoot/spiderfoot/templates
     ports:
       - "5001:5001"
       - "9051:9051"
