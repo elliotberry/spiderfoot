@@ -459,6 +459,47 @@ class SpiderFootPlugin():
 
         return []
 
+    def fetch_url(self, url: str, method: str = "GET", headers: dict = None,
+                  data=None, timeout: int = 30, **kwargs) -> dict:
+        """Compatibility helper for modules ported from modern SpiderFoot forks.
+
+        Wraps ``self.sf.fetchUrl`` and accepts both modern and legacy kwargs.
+
+        Args:
+            url (str): URL to fetch
+            method (str): HTTP method (GET/POST/HEAD)
+            headers (dict): optional request headers
+            data: optional POST body
+            timeout (int): request timeout in seconds
+            **kwargs: forwarded to ``SpiderFoot.fetchUrl`` (useragent, postData, etc.)
+
+        Returns:
+            dict: HTTP response with content/code/headers/realurl/status
+        """
+        if not getattr(self, "sf", None):
+            return None
+
+        legacy = dict(kwargs)
+        legacy["timeout"] = timeout
+        if headers is not None:
+            legacy["headers"] = headers
+
+        if data is not None and "postData" not in legacy:
+            legacy["postData"] = data if isinstance(data, str) else str(data)
+
+        method_upper = (method or "GET").upper()
+        if method_upper == "HEAD":
+            legacy["headOnly"] = True
+        elif method_upper == "POST" and "postData" not in legacy and data is None:
+            legacy.setdefault("postData", "")
+
+        # Drop kwargs that classic fetchUrl does not accept
+        for drop in ("method", "use_cache", "cache_ttl", "noLog",
+                     "dontMaskPassword", "fatal", "useragent_for_page"):
+            legacy.pop(drop, None)
+
+        return self.sf.fetchUrl(url, **legacy)
+
     def handleEvent(self, sfEvent) -> None:
         """Handle events to this module.
         Will usually be overriden by the implementer, unless it doesn't handle any events.

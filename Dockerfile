@@ -78,6 +78,29 @@ RUN sh -c 'set -e; \
   done; \
   echo "git clone testssl.sh failed after retries"; exit 1'
 
+# Install additional recon tools used by ported modules (arch-aware)
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) pd_arch=amd64; gl_arch=x64; amass_arch=amd64 ;; \
+      arm64) pd_arch=arm64; gl_arch=arm64; amass_arch=arm64 ;; \
+      *) echo "unsupported arch: $arch" >&2; exit 1 ;; \
+    esac; \
+    wget -q "https://github.com/projectdiscovery/subfinder/releases/download/v2.14.0/subfinder_2.14.0_linux_${pd_arch}.zip" -O /tmp/subfinder.zip; \
+    wget -q "https://github.com/projectdiscovery/httpx/releases/download/v1.10.0/httpx_1.10.0_linux_${pd_arch}.zip" -O /tmp/httpx.zip; \
+    wget -q "https://github.com/projectdiscovery/katana/releases/download/v1.6.1/katana_1.6.1_linux_${pd_arch}.zip" -O /tmp/katana.zip; \
+    wget -q "https://github.com/lc/gau/releases/download/v2.2.4/gau_2.2.4_linux_${pd_arch}.tar.gz" -O /tmp/gau.tar.gz; \
+    wget -q "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_${gl_arch}.tar.gz" -O /tmp/gitleaks.tar.gz; \
+    wget -q "https://github.com/owasp-amass/amass/releases/download/v4.2.0/amass_Linux_${amass_arch}.zip" -O /tmp/amass.zip; \
+    unzip -o /tmp/subfinder.zip -d /tmp/subfinder && install -m 755 /tmp/subfinder/subfinder /usr/local/bin/subfinder; \
+    unzip -o /tmp/httpx.zip -d /tmp/httpx && install -m 755 /tmp/httpx/httpx /usr/local/bin/httpx; \
+    unzip -o /tmp/katana.zip -d /tmp/katana && install -m 755 /tmp/katana/katana /usr/local/bin/katana; \
+    mkdir -p /tmp/gau /tmp/gitleaks /tmp/amass; \
+    tar -xzf /tmp/gau.tar.gz -C /tmp/gau && install -m 755 /tmp/gau/gau /usr/local/bin/gau; \
+    tar -xzf /tmp/gitleaks.tar.gz -C /tmp/gitleaks && install -m 755 /tmp/gitleaks/gitleaks /usr/local/bin/gitleaks; \
+    unzip -o /tmp/amass.zip -d /tmp/amass && install -m 755 /tmp/amass/*/amass /usr/local/bin/amass; \
+    rm -rf /tmp/subfinder* /tmp/httpx* /tmp/katana* /tmp/gau* /tmp/gitleaks* /tmp/amass*
+
 # Install Snallygaster and TruffleHog
 RUN pip3 install snallygaster trufflehog
 
@@ -143,5 +166,11 @@ db.configSet({ \
     "sfp_tool_nuclei:template_path": "/tools/nuclei-templates", \
     "sfp_tool_wappalyzer:wappalyzer_path": "/usr/local/bin/wappalyzer", \
     "sfp_tool_nbtscan:nbtscan_path": "/usr/bin/nbtscan", \
-    "sfp_tool_nmap:nmappath": "DISABLED_BECAUSE_NMAP_REQUIRES_ROOT_TO_WORK" \
+    "sfp_tool_nmap:nmappath": "DISABLED_BECAUSE_NMAP_REQUIRES_ROOT_TO_WORK", \
+    "sfp_tool_amass:amass_path": "/usr/local/bin/amass", \
+    "sfp_subfinder:subfinder_path": "/usr/local/bin/subfinder", \
+    "sfp_httpx:httpx_path": "/usr/local/bin/httpx", \
+    "sfp_tool_katana:katana_path": "/usr/local/bin/katana", \
+    "sfp_tool_gau:gau_path": "/usr/local/bin/gau", \
+    "sfp_tool_gitleaks:gitleaks_path": "/usr/local/bin/gitleaks" \
 })' || true && python ./sf.py -l 0.0.0.0:5001
