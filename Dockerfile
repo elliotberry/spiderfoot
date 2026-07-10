@@ -1,5 +1,12 @@
-FROM python:3.9.19-bullseye
+#
+# Spiderfoot Dockerfile (Full - includes all CLI tools, etc.)
+#
+# http://www.spiderfoot.net
+#
+# Written by: TheTechromancer
+#
 
+FROM python:3.12
 
 # Install tools/dependencies from apt
 RUN apt-get -y update && apt-get -y install nbtscan onesixtyone nmap
@@ -25,36 +32,51 @@ RUN groupadd spiderfoot \
     && useradd -m -g spiderfoot -d /home/spiderfoot -s /sbin/nologin \
     -c "SpiderFoot User" spiderfoot
 
-# Install RetireJS
-RUN apt remove -y cmdtest \
-    && apt remove -y yarn \
-    && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-    && echo 'deb https://dl.yarnpkg.com/debian/ stable main' |tee /etc/apt/sources.list.d/yarn.list \
-    && apt-get update \
-    && apt-get install yarn -y \
-    && yarn install \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+# Install RetireJS (NodeSource Node 20 + yarn/retire via npm; avoids deprecated apt-key)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
+    && npm install -g yarn \
     && npm install -g retire
 
 # Install Google Chrome the New Way (Not via apt-key)
+# Disabled: google-chrome-stable is amd64-only and fails on arm64 hosts.
 #RUN wget -qO - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg \
 #    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
 #    && apt -y update && apt install --allow-unauthenticated -y google-chrome-stable
 
-# Install Wappalyzer
-RUN git clone https://github.com/dochne/wappalyzer.git \
-    && cd wappalyzer \
-    && yarn install
+# Install Wappalyzer CLI via npm (avoids git clone / yarn workspace issues)
+RUN npm install -g wappalyzer
 
-# Install Nuclei
-RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v2.6.5/nuclei_2.6.5_linux_amd64.zip \
-    && unzip nuclei_2.6.5_linux_amd64.zip \
-    && git clone https://github.com/projectdiscovery/nuclei-templates.git
+# Install Nuclei (arch-aware for amd64/arm64)
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) nuclei_arch=amd64 ;; \
+      arm64) nuclei_arch=arm64 ;; \
+      *) echo "unsupported arch: $arch" >&2; exit 1 ;; \
+    esac; \
+    wget "https://github.com/projectdiscovery/nuclei/releases/download/v2.6.5/nuclei_2.6.5_linux_${nuclei_arch}.zip"; \
+    unzip "nuclei_2.6.5_linux_${nuclei_arch}.zip"; \
+    rm "nuclei_2.6.5_linux_${nuclei_arch}.zip"
+RUN sh -c 'set -e; \
+  for i in 1 2 3; do \
+    git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30 clone --depth 1 https://github.com/projectdiscovery/nuclei-templates.git && exit 0 || { \
+      echo "git clone nuclei-templates failed, retry $i..."; \
+      sleep $((i*5)); \
+    }; \
+  done; \
+  echo "git clone nuclei-templates failed after retries"; exit 1'
 
 # Install testssl.sh
 RUN apt-get install -y bsdmainutils dnsutils coreutils
-RUN git clone https://github.com/drwetter/testssl.sh.git
+RUN sh -c 'set -e; \
+  for i in 1 2 3; do \
+    git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30 clone --depth 1 https://github.com/drwetter/testssl.sh.git && exit 0 || { \
+      echo "git clone testssl.sh failed, retry $i..."; \
+      sleep $((i*5)); \
+    }; \
+  done; \
+  echo "git clone testssl.sh failed after retries"; exit 1'
 
 # Install Snallygaster and TruffleHog
 RUN pip3 install snallygaster trufflehog
@@ -85,7 +107,7 @@ COPY "$REQUIREMENTS" requirements.txt
 RUN chown -R spiderfoot:spiderfoot /tools
 RUN chown -R spiderfoot:spiderfoot "$VIRTUAL_ENV"
 RUN chown -R spiderfoot:spiderfoot "/home/spiderfoot"
-RUN chown -R spiderfoot:spiderfoot .
+
 USER spiderfoot
 
 RUN pip install -U pip
@@ -98,13 +120,10 @@ WORKDIR /tools
 RUN git clone https://github.com/Tuhinshubhra/CMSeeK && cd CMSeeK \
     && pip install -r requirements.txt && mkdir Results
 
-# Install wafw00f
-RUN git clone https://github.com/EnableSecurity/wafw00f \
-    && cd wafw00f \
-    && python3 setup.py install
+# Install wafw00f (packaged via pyproject.toml; setup.py is gone)
+RUN pip install wafw00f
 WORKDIR /home/spiderfoot
-USER spiderfoot
-RUN ls -la
+
 EXPOSE 5001
 
 # Run the application
@@ -122,7 +141,7 @@ db.configSet({ \
     "sfp_tool_trufflehog:trufflehog_path": "/usr/local/bin/trufflehog", \
     "sfp_tool_nuclei:nuclei_path": "/tools/nuclei", \
     "sfp_tool_nuclei:template_path": "/tools/nuclei-templates", \
-    "sfp_tool_wappalyzer:wappalyzer_path": "/tools/wappalyzer/src/drivers/npm/cli.js", \
+    "sfp_tool_wappalyzer:wappalyzer_path": "/usr/local/bin/wappalyzer", \
     "sfp_tool_nbtscan:nbtscan_path": "/usr/bin/nbtscan", \
     "sfp_tool_nmap:nmappath": "DISABLED_BECAUSE_NMAP_REQUIRES_ROOT_TO_WORK" \
 })' || true && python ./sf.py -l 0.0.0.0:5001
