@@ -114,6 +114,10 @@ RUN set -eux; \
     install_tgz "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_${gl_arch}.tar.gz" gitleaks; \
     install_zip "https://github.com/owasp-amass/amass/releases/download/v4.2.0/amass_Linux_${amass_arch}.zip" amass
 
+# Maigret in a separate venv (needs lxml>=6; SpiderFoot pins lxml<5)
+RUN python -m venv /opt/maigret-venv \
+    && /opt/maigret-venv/bin/pip install --no-cache-dir -U pip \
+    && /opt/maigret-venv/bin/pip install --no-cache-dir 'maigret'
 
 # Install Snallygaster and TruffleHog
 RUN pip3 install snallygaster trufflehog
@@ -186,5 +190,6 @@ db.configSet({ \
     "sfp_httpx:httpx_path": "/usr/local/bin/httpx", \
     "sfp_tool_katana:katana_path": "/usr/local/bin/katana", \
     "sfp_tool_gau:gau_path": "/usr/local/bin/gau", \
-    "sfp_tool_gitleaks:gitleaks_path": "/usr/local/bin/gitleaks" \
+    "sfp_tool_gitleaks:gitleaks_path": "/usr/local/bin/gitleaks", \
+    "sfp_tool_maigret:maigret_path": "/opt/maigret-venv/bin/maigret" \
 })' || true && python ./sf.py -l 0.0.0.0:5001
