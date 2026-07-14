@@ -110,6 +110,7 @@ RUN set -eux; \
     install_zip "https://github.com/projectdiscovery/subfinder/releases/download/v2.14.0/subfinder_2.14.0_linux_${pd_arch}.zip" subfinder; \
     install_zip "https://github.com/projectdiscovery/httpx/releases/download/v1.10.0/httpx_1.10.0_linux_${pd_arch}.zip" httpx; \
     install_zip "https://github.com/projectdiscovery/katana/releases/download/v1.6.1/katana_1.6.1_linux_${pd_arch}.zip" katana; \
+    install_zip "https://github.com/projectdiscovery/dnsx/releases/download/v1.2.3/dnsx_1.2.3_linux_${pd_arch}.zip" dnsx; \
     install_tgz "https://github.com/lc/gau/releases/download/v2.2.4/gau_2.2.4_linux_${pd_arch}.tar.gz" gau; \
     install_tgz "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_${gl_arch}.tar.gz" gitleaks; \
     install_zip "https://github.com/owasp-amass/amass/releases/download/v4.2.0/amass_Linux_${amass_arch}.zip" amass
@@ -118,6 +119,14 @@ RUN set -eux; \
 RUN python -m venv /opt/maigret-venv \
     && /opt/maigret-venv/bin/pip install --no-cache-dir -U pip \
     && /opt/maigret-venv/bin/pip install --no-cache-dir 'maigret'
+
+# Holehe (email→account) and waymore (archive URLs) in isolated venvs
+RUN python -m venv /opt/holehe-venv \
+    && /opt/holehe-venv/bin/pip install --no-cache-dir -U pip \
+    && /opt/holehe-venv/bin/pip install --no-cache-dir 'holehe'
+RUN python -m venv /opt/waymore-venv \
+    && /opt/waymore-venv/bin/pip install --no-cache-dir -U pip \
+    && /opt/waymore-venv/bin/pip install --no-cache-dir 'waymore'
 
 # Install Snallygaster and TruffleHog
 RUN pip3 install snallygaster trufflehog
@@ -201,5 +210,8 @@ db.configSet({ \
     "sfp_tool_katana:katana_path": "/usr/local/bin/katana", \
     "sfp_tool_gau:gau_path": "/usr/local/bin/gau", \
     "sfp_tool_gitleaks:gitleaks_path": "/usr/local/bin/gitleaks", \
-    "sfp_tool_maigret:maigret_path": "/opt/maigret-venv/bin/maigret" \
+    "sfp_tool_maigret:maigret_path": "/opt/maigret-venv/bin/maigret", \
+    "sfp_tool_holehe:holehe_path": "/opt/holehe-venv/bin/holehe", \
+    "sfp_tool_dnsx:dnsx_path": "/usr/local/bin/dnsx", \
+    "sfp_tool_waymore:waymore_path": "/opt/waymore-venv/bin/waymore" \
 })' || true && python ./sf.py -l 0.0.0.0:5001

@@ -1,7 +1,9 @@
 services:
   spiderfoot:
-    image: ghcr.io/elliotberry/spiderfoot:latest
-    pull_policy: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: spiderfoot:local
     ports:
       - "5001:5001"
     volumes:
