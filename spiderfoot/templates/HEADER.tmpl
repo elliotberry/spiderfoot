@@ -19,15 +19,27 @@
     <link href="${docroot}/static/node_modules/alertifyjs/build/css/alertify.min.css" rel="stylesheet">
 
     <script>
-        // Load dark theme before the page body loads
-        if (localStorage.getItem("theme") === "dark-theme") {
-            var head = document.getElementsByTagName('HEAD')[0];
-            var link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.type = 'text/css';
-            link.href = "${docroot}/static/css/dark.css";
-            head.appendChild(link);
-        }
+        // Apply theme before the page body loads: respect a manual choice,
+        // otherwise follow the operating system color-scheme preference.
+        (function () {
+            var theme = localStorage.getItem("theme");
+            var useDark;
+            if (theme === "dark-theme") {
+                useDark = true;
+            } else if (theme === "light-theme" || localStorage.getItem("mode") === "Dark Mode") {
+                // Explicit light (including legacy toggles that only set mode)
+                useDark = false;
+            } else {
+                useDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            }
+            if (useDark) {
+                var link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.type = "text/css";
+                link.href = "${docroot}/static/css/dark.css";
+                document.head.appendChild(link);
+            }
+        })();
     </script>
     <script src="./static/js/neat.js"></script>
   </head>

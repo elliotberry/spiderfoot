@@ -259,44 +259,45 @@ var DATE_STRING_REGEX = /(^\d{1,4}[\.|\\/|-]\d{1,2}[\.|\\/|-]\d{1,4})(\s*(?:0?[1
     );
   })();
 
+// Resolve theme: manual localStorage choice wins; otherwise follow OS preference.
+function sfResolveDarkTheme () {
+  const theme = localStorage.getItem('theme');
+  if (theme === 'dark-theme') {
+    return true;
+  }
+  if (theme === 'light-theme' || localStorage.getItem('mode') === 'Dark Mode') {
+    // Explicit light (including legacy toggles that only set mode)
+    return false;
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
 // Toggler for theme
 document.addEventListener('DOMContentLoaded', () => {
   const themeToggler = document.getElementById('theme-toggler');
-  const head = document.getElementsByTagName('HEAD')[0];
   const togglerText = document.getElementById('toggler-text');
-  let link = document.createElement('link');
+  if (!themeToggler || !togglerText) {
+    return;
+  }
 
-  if (localStorage.getItem('mode') === 'Light Mode') {
+  if (sfResolveDarkTheme()) {
     togglerText.innerText = 'Dark Mode';
-    document.getElementById('theme-toggler').checked = true; // ensure theme toggle is set to dark
+    themeToggler.checked = true;
   } else {
-    // initial mode ist null
     togglerText.innerText = 'Light Mode';
-    document.getElementById('theme-toggler').checked = false; // ensure theme toggle is set to light
+    themeToggler.checked = false;
   }
 
   themeToggler.addEventListener('click', () => {
-    togglerText.innerText = 'Light Mode';
-
-    if (localStorage.getItem('theme') === 'dark-theme') {
-      localStorage.removeItem('theme');
-      localStorage.setItem('mode', 'Dark Mode');
-      link.rel = 'stylesheet';
-      link.type = 'text/css';
-      link.href = '${docroot}/static/css/spiderfoot.css';
-
-      head.appendChild(link);
-      location.reload();
-    } else {
+    // Persist an explicit choice so future OS preference changes are ignored.
+    if (themeToggler.checked) {
       localStorage.setItem('theme', 'dark-theme');
       localStorage.setItem('mode', 'Light Mode');
-      link.rel = 'stylesheet';
-      link.type = 'text/css';
-      link.href = '${docroot}/static/css/dark.css';
-
-      head.appendChild(link);
-      location.reload();
+    } else {
+      localStorage.setItem('theme', 'light-theme');
+      localStorage.setItem('mode', 'Dark Mode');
     }
+    location.reload();
   });
 });
 
