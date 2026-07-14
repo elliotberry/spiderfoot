@@ -104,12 +104,8 @@
   if ("${selectedmods}" != "") {
           switchTab("module");
 
-          $("input[id^=module_]").each(function(id, obj) {
-              if ("${selectedmods}".indexOf(obj.id.replace("module_", "")) >= 0) {
-                  $("#" + obj.id).attr("checked", true);
-              } else {
-                  $("#" + obj.id).attr("checked", false);
-              }
+          document.querySelectorAll("input[id^=module_]").forEach(function(obj) {
+              obj.checked = ("${selectedmods}".indexOf(obj.id.replace("module_", "")) >= 0);
           });
   }
 </script>

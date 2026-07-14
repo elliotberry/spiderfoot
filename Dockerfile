@@ -146,7 +146,7 @@ RUN mkdir -p $SPIDERFOOT_DATA || true \
 WORKDIR /home/spiderfoot
 COPY . .
 
-# Frontend vendor assets required by templates (Bootstrap, jQuery, etc.).
+# Frontend vendor assets required by templates (Bootstrap, D3, Sigma, Alertify).
 # sigma's npm package omits build/sigma.min.js; fetch the matching 1.2.1 build.
 RUN cd spiderfoot/static \
     && npm ci --omit=dev \

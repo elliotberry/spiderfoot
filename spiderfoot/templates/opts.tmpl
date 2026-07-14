@@ -12,7 +12,7 @@
 <div class='text-left'>
     <input type=hidden id='allopts' name='allopts' value=''>
     <input type=hidden id='token' name='token' value="${token}">
-    <input type="file" name='configFile' id="configFile" class='hidden' onChange='$("#savesettingsform").submit()' />
+    <input type="file" name='configFile' id="configFile" class='hidden' onChange='document.getElementById("savesettingsform").submit()' />
     <button id="btn-save-changes" class='btn btn-primary' type="submit">Save Changes</button>
     <button id="btn-import-config" class='btn btn-info'>Import API Keys</button>
     <button id="btn-opt-export" class='btn btn-info'>Export API Keys</button>

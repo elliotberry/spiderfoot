@@ -1,14 +1,11 @@
-window.addEventListener('load', function (event) {
-  console.log('All resources finished loading!');
-  //get width
+window.addEventListener('load', function () {
+  var right = document.querySelector('#optsect_global');
+  if (!right) return;
 
-  let right = document.querySelector('#optsect_global');
-  //let h = right.offsetHeight;
-  const style = window.getComputedStyle(right);
-  const h = style.height;
-  const hj = right.getBoundingClientRect().height;
-  console.log('Height is: ' + hj);
-  const heightNum = parseFloat(style.height);
-  console.log('Height is: ' + h);
-  document.querySelector('.lefty-navo').style.maxHeight = heightNum + 'px';
+  var style = window.getComputedStyle(right);
+  var heightNum = parseFloat(style.height);
+  var leftNav = document.querySelector('.lefty-navo');
+  if (leftNav && !isNaN(heightNum)) {
+    leftNav.style.maxHeight = heightNum + 'px';
+  }
 });

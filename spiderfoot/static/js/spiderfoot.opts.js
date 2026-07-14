@@ -1,43 +1,61 @@
-activeTab = "global";
+activeTab = 'global';
 function saveSettings() {
-    var retarr = {}
-    $(":input").each(function(i) {
-        retarr[$(this).attr('id')] = $(this).val();
-    });
+  var retarr = {};
+  sf.qsa('input, select, textarea').forEach(function (el) {
+    if (!el.id) return;
+    retarr[el.id] = el.value;
+  });
 
-    $("#allopts").val(JSON.stringify(retarr));
+  sf.el('allopts').value = JSON.stringify(retarr);
 }
 
 function clearSettings() {
-    $("#allopts").val("RESET");
+  sf.el('allopts').value = 'RESET';
 }
 
 function switchTab(tab) {
-    $("#optsect_"+activeTab).hide();
-    $("#optsect_"+tab).show();
-    $("#tab_"+activeTab).removeClass("active");
-    $("#tab_"+tab).addClass("active");
-    activeTab = tab;
+  sf.hide('optsect_' + activeTab);
+  sf.show('optsect_' + tab);
+  sf.removeClass('tab_' + activeTab, 'active');
+  sf.addClass('tab_' + tab, 'active');
+  activeTab = tab;
 }
 
 function getFile(elemId) {
-   var elem = document.getElementById(elemId);
-   if(elem && document.createEvent) {
-      var evt = document.createEvent("MouseEvents");
-      evt.initEvent("click", true, false);
-      elem.dispatchEvent(evt);
-   }
+  var elem = document.getElementById(elemId);
+  if (elem) {
+    elem.click();
+  }
 }
 
-$(document).ready(function() {
-  $("#btn-save-changes").click(function() { saveSettings(); });
-  $("#btn-import-config").click(function() { getFile("configFile"); return false; });
-  $("#btn-reset-settings").click(function() { clearSettings(); });
-  $("#btn-opt-export").click(function() { window.location.href=docroot + "/optsexport?pattern=api_key"; return false; });
-  $("#tab_global").click(function() { switchTab("global"); });
-});
+document.addEventListener('DOMContentLoaded', function () {
+  var btnSave = sf.el('btn-save-changes');
+  var btnImport = sf.el('btn-import-config');
+  var btnReset = sf.el('btn-reset-settings');
+  var btnExport = sf.el('btn-opt-export');
+  var tabGlobal = sf.el('tab_global');
 
-$(function () {
-  $('[data-toggle="popover"]').popover()
-  $('[data-toggle="popover"]').on("show.bs.popover", function() { $(this).data("bs.popover").tip().css("max-width", "600px") });
+  if (btnSave) btnSave.addEventListener('click', function () { saveSettings(); });
+  if (btnImport)
+    btnImport.addEventListener('click', function (e) {
+      e.preventDefault();
+      getFile('configFile');
+    });
+  if (btnReset) btnReset.addEventListener('click', function () { clearSettings(); });
+  if (btnExport)
+    btnExport.addEventListener('click', function (e) {
+      e.preventDefault();
+      window.location.href = docroot + '/optsexport?pattern=api_key';
+    });
+  if (tabGlobal)
+    tabGlobal.addEventListener('click', function () {
+      switchTab('global');
+    });
+
+  sf.qsa('[data-toggle="popover"]').forEach(function (el) {
+    el.setAttribute('data-max-width', '600px');
+  });
+  if (window.sfBootstrap) {
+    sfBootstrap.initPopovers();
+  }
 });

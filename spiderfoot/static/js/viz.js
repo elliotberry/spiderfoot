@@ -163,14 +163,7 @@ function sf_viz_vbar(targetId, gdata) {
     }
 
     function showToolTip(pMessage,pX,pY,pShow) {
-        if (typeof(tooltipDivID)=="undefined") {
-            tooltipDivID =$('<div id="messageToolTipDiv" style="position:absolute;display:block;z-index:10000;border:2px solid black;background-color:rgba(0,0,0,0.8);margin:auto;padding:3px 5px 3px 5px;color:white;font-size:12px;font-family:arial;border-radius: 5px;vertical-align: middle;text-align: center;min-width:50px;overflow:auto;"></div>');
-            $('body').append(tooltipDivID);
-        }
-        if (!pShow) { tooltipDivID.hide(); return;}
-        tooltipDivID.html(pMessage);
-        tooltipDivID.css({top:pY,left:pX});
-        tooltipDivID.show();
+        sfVizShowToolTip(pMessage, pX, pY, pShow);
     }
 }
 
@@ -265,14 +258,7 @@ function sf_viz_dendrogram(targetId, data) {
     }
 
     function showToolTip(pMessage,pX,pY,pShow) {
-        if (typeof(tooltipDivID)=="undefined") {
-            tooltipDivID =$('<div id="messageToolTipDiv" style="position:absolute;display:block;z-index:10000;border:2px solid black;background-color:rgba(0,0,0,0.8);margin:auto;padding:3px 5px 3px 5px;color:white;font-size:12px;font-family:arial;border-radius: 5px;vertical-align: middle;text-align: center;min-width:50px;overflow:auto;"></div>');
-            $('body').append(tooltipDivID);
-        }
-        if (!pShow) { tooltipDivID.hide(); return;}
-            tooltipDivID.html(pMessage);
-            tooltipDivID.css({top:pY,left:pX});
-            tooltipDivID.show();
+        sfVizShowToolTip(pMessage, pX, pY, pShow);
     }
 }
 
@@ -373,15 +359,27 @@ function sf_viz_bubble(targetId, plotData) {
     }
 
     function showToolTip(pMessage,pX,pY,pShow) {
-        if (typeof(tooltipDivID)=="undefined") {
-            tooltipDivID =$('<div id="messageToolTipDiv" style="position:absolute;display:block;z-index:10000;border:2px solid black;background-color:rgba(0,0,0,0.8);margin:auto;padding:3px 5px 3px 5px;color:white;font-size:12px;font-family:arial;border-radius: 5px;vertical-align: middle;text-align: center;min-width:50px;overflow:auto;"></div>');
+        sfVizShowToolTip(pMessage, pX, pY, pShow);
+    }
+}
 
-            $('body').append(tooltipDivID);
-        }
-
-        if (!pShow) { tooltipDivID.hide(); return;}
-            tooltipDivID.html(pMessage);
-            tooltipDivID.css({top:pY,left:pX});
-            tooltipDivID.show();
-        }
+function sfVizShowToolTip(pMessage, pX, pY, pShow) {
+    var tip = document.getElementById('messageToolTipDiv');
+    if (!tip) {
+        tip = document.createElement('div');
+        tip.id = 'messageToolTipDiv';
+        tip.setAttribute(
+            'style',
+            'position:absolute;display:none;z-index:10000;border:2px solid black;background-color:rgba(0,0,0,0.8);margin:auto;padding:3px 5px 3px 5px;color:white;font-size:12px;font-family:arial;border-radius: 5px;vertical-align: middle;text-align: center;min-width:50px;overflow:auto;',
+        );
+        document.body.appendChild(tip);
+    }
+    if (!pShow) {
+        tip.style.display = 'none';
+        return;
+    }
+    tip.innerHTML = pMessage;
+    tip.style.top = pY + 'px';
+    tip.style.left = pX + 'px';
+    tip.style.display = 'block';
 }

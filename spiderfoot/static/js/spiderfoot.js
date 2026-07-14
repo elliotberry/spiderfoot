@@ -326,59 +326,206 @@ sf.search = function (scan_id, value, type, postFunc) {
   sf.fetchData('/search', {id: scan_id, eventType: type, value: value}, postFunc);
 };
 
+sf.el = function (id) {
+  if (!id) return null;
+  if (id.charAt(0) === '#' || id.charAt(0) === '.') {
+    return document.querySelector(id);
+  }
+  return document.getElementById(id);
+};
+
+sf.qs = function (sel, root) {
+  return (root || document).querySelector(sel);
+};
+
+sf.qsa = function (sel, root) {
+  return Array.prototype.slice.call((root || document).querySelectorAll(sel));
+};
+
+sf.show = function (el) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  el.style.display = '';
+  el.hidden = false;
+};
+
+sf.hide = function (el) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  el.style.display = 'none';
+};
+
+sf.fadeOut = function (el, ms) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  ms = ms || 500;
+  el.style.transition = 'opacity ' + ms + 'ms';
+  el.style.opacity = '0';
+  setTimeout(function () {
+    el.style.display = 'none';
+    el.style.opacity = '';
+    el.style.transition = '';
+  }, ms);
+};
+
+sf.addClass = function (el, cls) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  if (Array.isArray(cls)) {
+    cls.forEach(function (c) { el.classList.add(c); });
+  } else {
+    el.classList.add(cls);
+  }
+};
+
+sf.removeClass = function (el, cls) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  if (Array.isArray(cls)) {
+    cls.forEach(function (c) { el.classList.remove(c); });
+  } else {
+    el.classList.remove(cls);
+  }
+};
+
+sf.toggleClass = function (el, cls, force) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  el.classList.toggle(cls, force);
+};
+
+sf.setHtml = function (el, html) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  el.innerHTML = html;
+};
+
+sf.empty = function (el) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  el.innerHTML = '';
+};
+
+sf.remove = function (el) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  el.remove();
+};
+
+sf.appendHtml = function (el, html) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  el.insertAdjacentHTML('beforeend', html);
+};
+
+sf.prependHtml = function (el, html) {
+  if (typeof el === 'string') el = sf.el(el) || sf.qs(el);
+  if (!el) return;
+  el.insertAdjacentHTML('afterbegin', html);
+};
+
+sf.encodeForm = function (data) {
+  if (!data) return null;
+  if (typeof data === 'string') return data;
+  var params = new URLSearchParams();
+  Object.keys(data).forEach(function (key) {
+    if (data[key] === undefined || data[key] === null) return;
+    params.append(key, data[key]);
+  });
+  return params.toString();
+};
+
+sf.request = function (opts) {
+  var method = (opts.type || opts.method || 'GET').toUpperCase();
+  var url = opts.url;
+  var body = null;
+  var headers = opts.headers || {};
+
+  if (method === 'GET' || method === 'HEAD') {
+    var qs = sf.encodeForm(opts.data);
+    if (qs) url += (url.indexOf('?') >= 0 ? '&' : '?') + qs;
+  } else if (opts.data) {
+    body = sf.encodeForm(opts.data);
+    if (!headers['Content-Type']) {
+      headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+    }
+  }
+
+  return fetch(url, {
+    method: method,
+    headers: headers,
+    body: body,
+    cache: 'no-store',
+    credentials: 'same-origin',
+  }).then(function (resp) {
+    if (!resp.ok) {
+      return resp.text().then(function (text) {
+        var err = new Error(text || resp.statusText || 'Request failed');
+        err.responseText = text;
+        err.status = resp.status;
+        throw err;
+      });
+    }
+    if (opts.dataType === 'json') {
+      return resp.json();
+    }
+    return resp.text();
+  });
+};
+
 sf.deleteScan = function (scan_id, callback) {
-  var req = $.ajax({
+  sf.request({
     type: 'GET',
-    url: '/scandelete?id=' + scan_id,
-  });
-  req.done(function () {
-    alertify.success('<i class="glyphicon glyphicon-ok-circle"></i> <b>Scans Deleted</b><br/><br/>' + scan_id.replace(/,/g, '<br/>'));
-    sf.log('Deleted scans: ' + scan_id);
-    callback();
-  });
-  req.fail(function (hr, textStatus, errorThrown) {
-    alertify.error('<i class="glyphicon glyphicon-minus-sign"></i> <b>Error</b><br/></br>' + hr.responseText);
-    sf.log('Error deleting scans: ' + scan_id + ': ' + hr.responseText);
-  });
+    url: '/scandelete?id=' + encodeURIComponent(scan_id),
+  })
+    .then(function () {
+      alertify.success('<i class="glyphicon glyphicon-ok-circle"></i> <b>Scans Deleted</b><br/><br/>' + scan_id.replace(/,/g, '<br/>'));
+      sf.log('Deleted scans: ' + scan_id);
+      if (callback) callback();
+    })
+    .catch(function (err) {
+      var msg = err.responseText || err.message || String(err);
+      alertify.error('<i class="glyphicon glyphicon-minus-sign"></i> <b>Error</b><br/></br>' + msg);
+      sf.log('Error deleting scans: ' + scan_id + ': ' + msg);
+    });
 };
 
 sf.stopScan = function (scan_id, callback) {
-  var req = $.ajax({
+  sf.request({
     type: 'GET',
-    url: '/stopscan?id=' + scan_id,
-  });
-  req.done(function () {
-    alertify.success('<i class="glyphicon glyphicon-ok-circle"></i> <b>Scans Aborted</b><br/><br/>' + scan_id.replace(/,/g, '<br/>'));
-    sf.log('Aborted scans: ' + scan_id);
-    callback();
-  });
-  req.fail(function (hr, textStatus, errorThrown) {
-    alertify.error('<i class="glyphicon glyphicon-minus-sign"></i> <b>Error</b><br/><br/>' + hr.responseText);
-    sf.log('Error stopping scans: ' + scan_id + ': ' + hr.responseText);
-  });
+    url: '/stopscan?id=' + encodeURIComponent(scan_id),
+  })
+    .then(function () {
+      alertify.success('<i class="glyphicon glyphicon-ok-circle"></i> <b>Scans Aborted</b><br/><br/>' + scan_id.replace(/,/g, '<br/>'));
+      sf.log('Aborted scans: ' + scan_id);
+      if (callback) callback();
+    })
+    .catch(function (err) {
+      var msg = err.responseText || err.message || String(err);
+      alertify.error('<i class="glyphicon glyphicon-minus-sign"></i> <b>Error</b><br/><br/>' + msg);
+      sf.log('Error stopping scans: ' + scan_id + ': ' + msg);
+    });
 };
 
 sf.fetchData = function (url, postData, postFunc) {
-  var req = $.ajax({
+  sf.request({
     type: 'POST',
     url: url,
     data: postData,
-    cache: false,
     dataType: 'json',
-  });
-
-  req.done(postFunc);
-  req.fail(function (hr, status) {
-    alertify.error('<i class="glyphicon glyphicon-minus-sign"></i> <b>Error</b><br/>' + status);
-  });
+  })
+    .then(function (data) {
+      if (postFunc) postFunc(data);
+    })
+    .catch(function (err) {
+      alertify.error('<i class="glyphicon glyphicon-minus-sign"></i> <b>Error</b><br/>' + (err.message || 'error'));
+    });
 };
 
 sf.updateTooltips = function () {
-  $(document).ready(function () {
-    if ($('[rel=tooltip]').length) {
-      $('[rel=tooltip]').tooltip({container: 'body'});
-    }
-  });
+  if (window.sfBootstrap) {
+    sfBootstrap.initTooltips();
+  }
 };
 
 sf.log = function (message) {
