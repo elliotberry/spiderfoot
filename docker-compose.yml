@@ -1,14 +1,12 @@
 services:
   spiderfoot:
-    build:
-      context: ./
-      dockerfile: ./Dockerfile
-    volumes:
-      - ../spiderfoot-data:/var/lib/spiderfoot
+    image: ghcr.io/elliotberry/spiderfoot:latest
+    pull_policy: always
     ports:
       - "5001:5001"
-      - "9051:9051"
-    restart: no
-  
+    volumes:
+      - spiderfoot-data:/var/lib/spiderfoot
+    restart: unless-stopped
+
 volumes:
   spiderfoot-data:

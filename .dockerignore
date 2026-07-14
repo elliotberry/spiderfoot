@@ -16,3 +16,4 @@ spiderfoot.test.db
 __pycache__
 htmlcov/
 docs/
+spiderfoot/static/node_modules/

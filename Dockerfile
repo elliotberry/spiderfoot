@@ -137,6 +137,16 @@ RUN mkdir -p $SPIDERFOOT_DATA || true \
 WORKDIR /home/spiderfoot
 COPY . .
 
+# Frontend vendor assets required by templates (Bootstrap, jQuery, etc.).
+# sigma's npm package omits build/sigma.min.js; fetch the matching 1.2.1 build.
+RUN cd spiderfoot/static \
+    && npm ci --omit=dev \
+    && wget -q -O node_modules/sigma/build/sigma.min.js \
+         https://cdnjs.cloudflare.com/ajax/libs/sigma.js/1.2.1/sigma.min.js \
+    && test -f node_modules/bootstrap/dist/css/bootstrap.min.css \
+    && test -f node_modules/d3/d3.min.js \
+    && test -f node_modules/sigma/build/sigma.min.js
+
 ENV VIRTUAL_ENV=/opt/venv
 RUN mkdir -p "$VIRTUAL_ENV" || true
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
