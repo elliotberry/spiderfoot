@@ -1,35 +1,36 @@
 import pytest
 import unittest
 
-from modules.sfp_riskiq import sfp_riskiq
+from modules.sfp_ip2locationio import sfp_ip2locationio
 from sflib import SpiderFoot
 from spiderfoot import SpiderFootEvent, SpiderFootTarget
 
 
 @pytest.mark.usefixtures
-class TestModuleRiskiq(unittest.TestCase):
+class TestModuleIp2locationio(unittest.TestCase):
 
     def test_opts(self):
-        module = sfp_riskiq()
+        module = sfp_ip2locationio()
         self.assertEqual(len(module.opts), len(module.optdescs))
 
     def test_setup(self):
         sf = SpiderFoot(self.default_options)
-        module = sfp_riskiq()
+        module = sfp_ip2locationio()
         module.setup(sf, dict())
 
     def test_watchedEvents_should_return_list(self):
-        module = sfp_riskiq()
+        module = sfp_ip2locationio()
         self.assertIsInstance(module.watchedEvents(), list)
 
     def test_producedEvents_should_return_list(self):
-        module = sfp_riskiq()
+        module = sfp_ip2locationio()
         self.assertIsInstance(module.producedEvents(), list)
+        self.assertIn("PHYSICAL_COORDINATES", module.producedEvents())
 
     def test_handleEvent_no_api_key_should_set_errorState(self):
         sf = SpiderFoot(self.default_options)
 
-        module = sfp_riskiq()
+        module = sfp_ip2locationio()
         module.setup(sf, dict())
 
         target_value = 'example target value'

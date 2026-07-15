@@ -167,7 +167,6 @@ Bitcoin Finder|Identify bitcoin addresses in scraped webpages.|Internal
 [CIRCL.LU](https://www.circl.lu/)|Obtain information from CIRCL.LU's Passive DNS and Passive SSL databases.|Free API
 [CleanBrowsing.org](https://cleanbrowsing.org/)|Check if a host would be blocked by CleanBrowsing.org DNS content filters.|Free API
 [CleanTalk Spam List](https://cleantalk.org)|Check if a netblock or IP address is on CleanTalk.org's spam IP list.|Free API
-[Clearbit](https://clearbit.com/)|Check for names, addresses, domains and more based on lookups of e-mail addresses on clearbit.com.|Tiered API
 [CloudFlare DNS](https://www.cloudflare.com/)|Check if a host would be blocked by CloudFlare DNS.|Free API
 [CoinBlocker Lists](https://zerodot1.gitlab.io/CoinBlockerListsWeb/)|Check if a domain appears on CoinBlocker lists.|Free API
 [CommonCrawl](http://commoncrawl.org/)|Searches for URLs found through CommonCrawl.org.|Free API
@@ -241,6 +240,7 @@ Interesting File Finder|Identifies potential files of interest, e.g. office docu
 [Internet Storm Center](https://isc.sans.edu)|Check if an IP address is malicious according to SANS ISC.|Free API
 [ipapi.co](https://ipapi.co/)|Queries ipapi.co to identify geolocation of IP Addresses using ipapi.co API|Tiered API
 [ipapi.com](https://ipapi.com/)|Queries ipapi.com to identify geolocation of IP Addresses using ipapi.com API|Tiered API
+[ip2location.io](https://www.ip2location.io/)|Queries ip2location.io to identify geolocation of IP addresses.|Tiered API
 [IPInfo.io](https://ipinfo.io)|Identifies the physical location of IP addresses identified using ipinfo.io.|Tiered API
 [IPQualityScore](https://www.ipqualityscore.com/)|Determine if target is malicious using IPQualityScore API|Tiered API
 [ipregistry](https://ipregistry.co/)|Query the ipregistry.co database for reputation and geo-location.|Tiered API
@@ -251,6 +251,8 @@ Junk File Finder|Looks for old/temporary and other similar files.|Internal
 [Koodous](https://koodous.com/apks/)|Search Koodous for mobile apps.|Tiered API
 [LeakIX](https://leakix.net/)|Search LeakIX for host data leaks, open ports, software and geoip.|Free API
 [Leak-Lookup](https://leak-lookup.com/)|Searches Leak-Lookup.com's database of breaches.|Free API
+[LeakCheck](https://leakcheck.io/)|Gather breach data from LeakCheck API.|Commercial API
+[LeakCheck Public](https://leakcheck.io/)|Gather breach data from LeakCheck Public API.|Free API
 [Maltiverse](https://maltiverse.com)|Obtain information about any malicious activities involving IP addresses|Free API
 [MalwarePatrol](https://www.malwarepatrol.net/)|Searches malwarepatrol.net's database of malicious URLs/IPs.|Tiered API
 [MetaDefender](https://metadefender.opswat.com/)|Search MetaDefender API for IP address and domain IP reputation.|Tiered API
@@ -285,7 +287,6 @@ Port Scanner - TCP|Scans for commonly open TCP ports on Internet-facing systems.
 [Quad9](https://quad9.net/)|Check if a host would be blocked by Quad9 DNS.|Free API
 [ReverseWhois](https://www.reversewhois.io/)|Reverse Whois lookups using reversewhois.io.|Free API
 [RIPE](https://www.ripe.net/)|Queries the RIPE registry (includes ARIN data) to identify netblocks and other info.|Free API
-[RiskIQ](https://community.riskiq.com/)|Obtain information from RiskIQ's (formerly PassiveTotal) Passive DNS and Passive SSL databases.|Tiered API
 [Robtex](https://www.robtex.com/)|Search Robtex.com for hosts sharing the same IP.|Free API
 [searchcode](https://searchcode.com/)|Search searchcode for code repositories mentioning the target domain.|Free API
 [SecurityTrails](https://securitytrails.com/)|Obtain Passive DNS and other information from SecurityTrails|Tiered API
@@ -302,7 +303,6 @@ Social Network Identifier|Identify presence on social media networks such as Lin
 [SpamCop](https://www.spamcop.net/)|Check if a netblock or IP address is in the SpamCop database.|Free API
 [Spamhaus Zen](https://www.spamhaus.org/)|Check if a netblock or IP address is in the Spamhaus Zen database.|Free API
 [spur.us](https://spur.us/)|Obtain information about any malicious activities involving IP addresses found|Commercial API
-[SpyOnWeb](http://spyonweb.com/)|Search SpyOnWeb for hosts sharing the same IP address, Google Analytics code, or Google Adsense code.|Tiered API
 SSL Certificate Analyzer|Gather information about SSL certificates used by the target's HTTPS sites.|Internal
 [StackOverflow](https://www.stackexchange.com)|Search StackOverflow for any mentions of a target domain. Returns potentially related information.|Tiered API
 [Steven Black Hosts](https://github.com/StevenBlack/hosts)|Check if a domain is malicious (malware or adware) according to Steven Black Hosts list.|Free API
@@ -312,7 +312,6 @@ Subdomain Takeover Checker|Check if affiliated subdomains are vulnerable to take
 [SURBL](http://www.surbl.org/)|Check if a netblock, IP address or domain is in the SURBL blacklist.|Free API
 [Talos Intelligence](https://talosintelligence.com/)|Check if a netblock or IP address is malicious according to TalosIntelligence.|Free API
 [TextMagic](https://www.textmagic.com/)|Obtain phone number type from TextMagic API|Tiered API
-[Threat Jammer](https://threatjammer.com)|Check if an IP address is malicious according to ThreatJammer.com|Tiered API
 [ThreatCrowd](https://www.threatcrowd.org)|Obtain information from ThreatCrowd about identified IP addresses, domains and e-mail addresses.|Free API
 [ThreatFox](https://threatfox.abuse.ch)|Check if an IP address is malicious according to ThreatFox.|Free API
 [ThreatMiner](https://www.threatminer.org/)|Obtain information from ThreatMiner's database for passive DNS and threat intelligence.|Free API
