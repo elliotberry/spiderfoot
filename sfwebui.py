@@ -10,6 +10,7 @@
 # License:      MIT
 # -----------------------------------------------------------------
 import csv
+import re
 import html
 import json
 import logging
@@ -191,7 +192,7 @@ class SpiderFootWebUi:
         return templ.render(message=message, docroot=self.docroot, version=__version__)
 
     def cleanUserInput(self: 'SpiderFootWebUi', inputList: list) -> list:
-        """Convert data to HTML entities; except quotes and ampersands.
+        """Convert data to HTML entities.
 
         Args:
             inputList (list): list of strings to sanitize
@@ -216,12 +217,25 @@ class SpiderFootWebUi:
                 ret.append('')
                 continue
             c = html.escape(item, True)
-
-            # Decode '&' and '"' HTML entities
-            c = c.replace("&amp;", "&").replace("&quot;", "\"")
             ret.append(c)
 
         return ret
+
+
+    @staticmethod
+    def _safe_filename(name: str) -> str:
+        """Sanitize a string for use in Content-Disposition filename."""
+        if not name:
+            return "SpiderFoot"
+        return re.sub(r'[^\w\-.]', '_', name)[:100]
+
+    @staticmethod
+    def _csv_safe(value) -> str:
+        """Prevent CSV formula injection by prefixing dangerous characters."""
+        s = str(value) if value is not None else ''
+        if s and s[0] in ('=', '+', '-', '@', '\t', '\r'):
+            return "'" + s
+        return s
 
     def searchBase(self: 'SpiderFootWebUi', id: str = None, eventType: str = None, value: str = None) -> list:
         """Search.
@@ -355,13 +369,13 @@ class SpiderFootWebUi:
         for row in data:
             parser.writerow([
                 time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(row[0] / 1000)),
-                str(row[1]),
-                str(row[2]),
-                str(row[3]),
-                row[4]
+                self._csv_safe(row[1]),
+                self._csv_safe(row[2]),
+                self._csv_safe(row[3]),
+                self._csv_safe(row[4])
             ])
 
-        cherrypy.response.headers['Content-Disposition'] = f"attachment; filename=SpiderFoot-{id}.log.csv"
+        cherrypy.response.headers['Content-Disposition'] = f"attachment; filename=SpiderFoot-{self._safe_filename(str(id))}.log.csv"
         cherrypy.response.headers['Content-Type'] = "application/csv"
         cherrypy.response.headers['Pragma'] = "no-cache"
         return fileobj.getvalue().encode('utf-8')
@@ -403,7 +417,7 @@ class SpiderFootWebUi:
                 rows.append([rule_name, correlation, rule_risk, rule_description])
 
             if scan_name:
-                fname = f"{scan_name}-SpiderFoot-correlations.xlxs"
+                fname = f"{self._safe_filename(scan_name)}-SpiderFoot-correlations.xlsx"
             else:
                 fname = "SpiderFoot-correlations.xlxs"
 
@@ -422,10 +436,10 @@ class SpiderFootWebUi:
                 rule_name = row[2]
                 rule_risk = row[3]
                 rule_description = row[5]
-                parser.writerow([rule_name, correlation, rule_risk, rule_description])
+            parser.writerow([self._csv_safe(rule_name), self._csv_safe(correlation), self._csv_safe(rule_risk), self._csv_safe(rule_description)])
 
             if scan_name:
-                fname = f"{scan_name}-SpiderFoot-correlations.csv"
+                fname = f"{self._safe_filename(scan_name)}-SpiderFoot-correlations.csv"
             else:
                 fname = "SpiderFoot-correlations.csv"
 
@@ -477,7 +491,7 @@ class SpiderFootWebUi:
                     continue
                 lastseen = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(row[0]))
                 datafield = str(row[1]).replace("<SFURL>", "").replace("</SFURL>", "")
-                parser.writerow([lastseen, str(row[4]), str(row[3]), str(row[2]), row[13], datafield])
+                parser.writerow([lastseen, self._csv_safe(row[4]), self._csv_safe(row[3]), self._csv_safe(row[2]), self._csv_safe(row[13]), self._csv_safe(datafield)])
 
             fname = "SpiderFoot.csv"
             cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
@@ -527,7 +541,7 @@ class SpiderFootWebUi:
             if len(ids.split(',')) > 1 or scan_name == "":
                 fname = "SpiderFoot.xlsx"
             else:
-                fname = scan_name + "-SpiderFoot.xlsx"
+                fname = self._safe_filename(scan_name) + "-SpiderFoot.xlsx"
 
             cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
             cherrypy.response.headers['Content-Type'] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -544,13 +558,13 @@ class SpiderFootWebUi:
                     continue
                 lastseen = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(row[0]))
                 datafield = str(row[1]).replace("<SFURL>", "").replace("</SFURL>", "")
-                parser.writerow([scaninfo[row[12]][0], lastseen, str(row[4]), str(row[3]),
-                                str(row[2]), row[13], datafield])
+            parser.writerow([self._csv_safe(scaninfo[row[12]][0]), lastseen, self._csv_safe(row[4]), self._csv_safe(row[3]),
+                             self._csv_safe(row[2]), self._csv_safe(row[13]), self._csv_safe(datafield)])
 
             if len(ids.split(',')) > 1 or scan_name == "":
                 fname = "SpiderFoot.csv"
             else:
-                fname = scan_name + "-SpiderFoot.csv"
+                fname = self._safe_filename(scan_name) + "-SpiderFoot.csv"
 
             cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
             cherrypy.response.headers['Content-Type'] = "application/csv"
@@ -599,7 +613,7 @@ class SpiderFootWebUi:
                 if row[10] == "ROOT":
                     continue
                 datafield = str(row[1]).replace("<SFURL>", "").replace("</SFURL>", "")
-                parser.writerow([row[0], str(row[10]), str(row[3]), str(row[2]), row[11], datafield])
+                parser.writerow([self._csv_safe(row[0]), self._csv_safe(row[10]), self._csv_safe(row[3]), self._csv_safe(row[2]), self._csv_safe(row[11]), self._csv_safe(datafield)])
             cherrypy.response.headers['Content-Disposition'] = "attachment; filename=SpiderFoot.csv"
             cherrypy.response.headers['Content-Type'] = "application/csv"
             cherrypy.response.headers['Pragma'] = "no-cache"
@@ -654,7 +668,7 @@ class SpiderFootWebUi:
         if len(ids.split(',')) > 1 or scan_name == "":
             fname = "SpiderFoot.json"
         else:
-            fname = scan_name + "-SpiderFoot.json"
+            fname = self._safe_filename(scan_name) + "-SpiderFoot.json"
 
         cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
         cherrypy.response.headers['Content-Type'] = "application/json; charset=utf-8"
@@ -692,7 +706,7 @@ class SpiderFootWebUi:
         if not scan_name:
             fname = "SpiderFoot.gexf"
         else:
-            fname = scan_name + "SpiderFoot.gexf"
+            fname = self._safe_filename(scan_name) + "-SpiderFoot.gexf"
 
         cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
         cherrypy.response.headers['Content-Type'] = "application/gexf"
@@ -736,7 +750,7 @@ class SpiderFootWebUi:
         if len(ids.split(',')) > 1 or scan_name == "":
             fname = "SpiderFoot.gexf"
         else:
-            fname = scan_name + "-SpiderFoot.gexf"
+            fname = self._safe_filename(scan_name) + "-SpiderFoot.gexf"
 
         cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
         cherrypy.response.headers['Content-Type'] = "application/gexf"
@@ -1016,9 +1030,16 @@ class SpiderFootWebUi:
         conf = sf.configSerialize(self.config)
         content = ""
 
+        sensitive = ('api_key', 'apikey', 'password', 'secret', 'token', 'passphrase')
         for opt in sorted(conf):
             if ":_" in opt or opt.startswith("_"):
                 continue
+            # Full config export redacts secrets; intentional pattern export
+            # (e.g. Export API Keys uses pattern=api_key) must keep matches.
+            if not pattern:
+                opt_lower = opt.lower()
+                if any(p in opt_lower for p in sensitive):
+                    continue
 
             if pattern:
                 if pattern in opt:
@@ -1360,11 +1381,22 @@ class SpiderFootWebUi:
         if not query:
             return self.jsonify_error('400', "Invalid query.")
 
-        if not query.lower().startswith("select"):
-            return self.jsonify_error('400', "Non-SELECTs are unpredictable and not recommended.")
+        q = query.strip()
+        if not q.lower().startswith("select"):
+            return self.jsonify_error('400', "Only SELECT queries are allowed.")
+
+        if ';' in q:
+            return self.jsonify_error('400', "Semicolons are not allowed in queries.")
+
+        q_lower = q.lower()
+        for keyword in ('attach', 'pragma', 'load_extension'):
+            if re.search(r'\b' + keyword + r'\b', q_lower):
+                return self.jsonify_error('400', f"'{keyword}' is not permitted.")
+        if 'tbl_config' in q_lower:
+            return self.jsonify_error('400', "Access to tbl_config is not permitted via this endpoint.")
 
         try:
-            ret = dbh.dbh.execute(query)
+            ret = dbh.dbh.execute(q)
             data = ret.fetchall()
             columnNames = [c[0] for c in dbh.dbh.description]
             return [dict(zip(columnNames, row)) for row in data]
@@ -1390,6 +1422,27 @@ class SpiderFootWebUi:
         """
         scanname = self.cleanUserInput([scanname])[0]
         scantarget = self.cleanUserInput([scantarget])[0]
+
+        # Rate limit concurrent scans
+        max_scans = self.config.get('_maxscans', 10)
+        try:
+            dbh_rl = SpiderFootDb(self.config)
+            running_scans = dbh_rl.scanInstanceList()
+            running_count = sum(
+                1 for scan in running_scans
+                if scan[5] in ('RUNNING', 'STARTED', 'STARTING')
+            )
+            if running_count >= max_scans:
+                msg = (
+                    f"Maximum concurrent scans ({max_scans}) reached. "
+                    f"Please wait for a running scan to complete."
+                )
+                if cherrypy.request.headers.get('Accept') and 'application/json' in cherrypy.request.headers.get('Accept'):
+                    cherrypy.response.headers['Content-Type'] = "application/json; charset=utf-8"
+                    return json.dumps(["ERROR", msg]).encode('utf-8')
+                return self.error(msg)
+        except Exception:
+            pass
 
         if not scanname:
             if cherrypy.request.headers.get('Accept') and 'application/json' in cherrypy.request.headers.get('Accept'):

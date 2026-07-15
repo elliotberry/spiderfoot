@@ -1050,8 +1050,10 @@ class SpiderFoot:
             fqdn = fqdn.lower()
 
             try:
-                # Extract the CN from the issued section
-                if "cn=" + fqdn in ret['issued'].lower():
+                # Extract the CN from the issued section (boundary match to avoid
+                # evil.example.com matching a check for example.com)
+                issued_lower = ret['issued'].lower()
+                if re.search(r'\bcn=' + re.escape(fqdn) + r'(?:\b|,|$)', issued_lower):
                     certhosts.append(fqdn)
 
                 # Extract subject alternative names
@@ -1109,12 +1111,17 @@ class SpiderFoot:
             r'key=\S+': "key=XXX",
             r'pass=\S+': "pass=XXX",
             r'user=\S+': "user=XXX",
-            r'password=\S+': "password=XXX"
+            r'password=\S+': "password=XXX",
+            r'token=\S+': "token=XXX",
+            r'secret=\S+': "secret=XXX",
+            r'apikey=\S+': "apikey=XXX",
+            r'api_key=\S+': "api_key=XXX",
+            r'access_token=\S+': "access_token=XXX",
         }
 
         ret = url
         for pat in pats:
-            ret = re.sub(pat, pats[pat], ret, re.IGNORECASE)
+            ret = re.sub(pat, pats[pat], ret, flags=re.IGNORECASE)
 
         return ret
 
@@ -1200,7 +1207,8 @@ class SpiderFoot:
         disableContentEncoding: bool = False,
         sizeLimit: int = None,
         headOnly: bool = False,
-        verify: bool = True
+        verify: bool = True,
+        _redirectDepth: int = 0
     ) -> dict:
         """Fetch a URL and return the HTTP response as a dictionary.
 
@@ -1400,6 +1408,10 @@ class SpiderFoot:
 
                 self.debug(f"Refresh header '{refresh_header}' found, re-directing to {self.removeUrlCreds(newurl)}")
 
+                if _redirectDepth >= 10:
+                    self.debug("Max refresh redirects (10) reached, stopping")
+                    return result
+
                 return self.fetchUrl(
                     newurl,
                     cookies,
@@ -1410,7 +1422,9 @@ class SpiderFoot:
                     postData,
                     disableContentEncoding,
                     sizeLimit,
-                    headOnly
+                    headOnly,
+                    verify,
+                    _redirectDepth=_redirectDepth + 1
                 )
 
             if disableContentEncoding:

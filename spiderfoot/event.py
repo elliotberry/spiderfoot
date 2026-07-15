@@ -52,7 +52,8 @@ class SpiderFootEvent():
         self.visibility = 100
         self.risk = 0
         self.sourceEvent = sourceEvent
-        self.__id = f"{self.eventType}{self.generated}{self.module}{random.SystemRandom().randint(0, 99999999)}"
+        self.storeOnly = False
+        self.__id = f"{self.eventType}{self.generated}{self.module}{random.SystemRandom().getrandbits(64)}"
 
     @property
     def generated(self) -> float:

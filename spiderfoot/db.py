@@ -17,6 +17,7 @@ import re
 import sqlite3
 import threading
 import time
+import uuid
 
 
 class SpiderFootDb:
@@ -158,6 +159,7 @@ class SpiderFootDb:
         ['DESCRIPTION_CATEGORY', 'Description - Category', 0, 'DESCRIPTOR'],
         ['DESCRIPTION_ABSTRACT', 'Description - Abstract', 0, 'DESCRIPTOR'],
         ['DEVICE_TYPE', 'Device Type', 0, 'DESCRIPTOR'],
+        ['RANSOMWARE_VICTIM', 'Ransomware Leak-Site Victim', 0, 'DESCRIPTOR'],
         ['DNS_TEXT', 'DNS TXT Record', 0, 'DATA'],
         ['DNS_SRV', 'DNS SRV Record', 0, 'DATA'],
         ['DNS_SPF', 'DNS SPF Record', 0, 'DATA'],
@@ -374,22 +376,24 @@ class SpiderFootDb:
                                   "SpiderFoot wasn't able to migrate you, so you'll need to delete "
                                   "your SpiderFoot database in order to proceed.") from None
 
-            if init:
-                for row in self.eventDetails:
-                    event = row[0]
-                    event_descr = row[1]
-                    event_raw = row[2]
-                    event_type = row[3]
-                    qry = "INSERT INTO tbl_event_types (event, event_descr, event_raw, event_type) VALUES (?, ?, ?, ?)"
+            # Always sync eventDetails into tbl_event_types so that existing
+            # databases pick up newly added event types on upgrade. Each
+            # INSERT is best-effort; duplicates are silently skipped.
+            for row in self.eventDetails:
+                event = row[0]
+                event_descr = row[1]
+                event_raw = row[2]
+                event_type = row[3]
+                qry = "INSERT INTO tbl_event_types (event, event_descr, event_raw, event_type) VALUES (?, ?, ?, ?)"
 
-                    try:
-                        self.dbh.execute(qry, (
-                            event, event_descr, event_raw, event_type
-                        ))
-                        self.conn.commit()
-                    except Exception:
-                        continue
-                self.conn.commit()
+                try:
+                    self.dbh.execute(qry, (
+                        event, event_descr, event_raw, event_type
+                    ))
+                    self.conn.commit()
+                except Exception:
+                    continue
+            self.conn.commit()
 
     #
     # Back-end database operations
@@ -443,7 +447,6 @@ class SpiderFootDb:
                 return True
             except sqlite3.Error as e:
                 raise IOError("SQL error encountered when vacuuming the database") from e
-        return False
 
     def search(self, criteria: dict, filterFp: bool = False) -> list:
         """Search database.
@@ -715,6 +718,36 @@ class SpiderFootDb:
                 self.conn.commit()
             except sqlite3.Error:
                 raise IOError("Unable to set information for the scan instance.") from None
+
+    def scanInstanceReconcileZombies(self) -> list:
+        """Mark scans whose worker process is no longer alive as ABORTED.
+
+        Any scan still recorded as RUNNING, STARTING or ABORT-REQUESTED
+        when the application boots is, by definition, a zombie: the
+        worker that owned it died with the previous process (container
+        restart, OOM, crash) and there is nothing left to advance it.
+
+        Returns:
+            list: GUIDs of the scans that were reconciled.
+        """
+        with self.dbhLock:
+            try:
+                rows = self.dbh.execute(
+                    "SELECT guid FROM tbl_scan_instance "
+                    "WHERE status IN ('RUNNING', 'STARTING', 'ABORT-REQUESTED')"
+                ).fetchall()
+                guids = [r[0] for r in rows]
+                if guids:
+                    self.dbh.execute(
+                        "UPDATE tbl_scan_instance SET status='ABORTED', ended = ? "
+                        "WHERE status IN ('RUNNING', 'STARTING', 'ABORT-REQUESTED')",
+                        (time.time() * 1000,)
+                    )
+                    self.conn.commit()
+                return guids
+            except sqlite3.Error:
+                # Best-effort cleanup: never block app startup on this.
+                return []
 
     def scanInstanceGet(self, instanceId: str) -> list:
         """Return info about a scan instance (name, target, created, started, ended, status)
@@ -1524,6 +1557,9 @@ class SpiderFootDb:
                 continue
             hashIds.append(hashId)
 
+        if not hashIds:
+            return []
+
         # the output of this needs to be aligned with scanResultEvent,
         # as other functions call both expecting the same output.
         qry = "SELECT ROUND(c.generated) AS generated, c.data, \
@@ -1536,8 +1572,8 @@ class SpiderFootDb:
             tbl_event_types st \
             WHERE c.scan_instance_id = ? AND c.source_event_hash = s.hash AND \
             s.scan_instance_id = c.scan_instance_id AND st.event = s.type AND \
-            t.event = c.type AND c.hash in ('%s')" % "','".join(hashIds)
-        qvars = [instanceId]
+            t.event = c.type AND c.hash IN (" + ",".join(["?"] * len(hashIds)) + ")"
+        qvars = [instanceId] + hashIds
 
         with self.dbhLock:
             try:
@@ -1575,6 +1611,9 @@ class SpiderFootDb:
                 continue
             hashIds.append(hashId)
 
+        if not hashIds:
+            return []
+
         # the output of this needs to be aligned with scanResultEvent,
         # as other functions call both expecting the same output.
         qry = "SELECT ROUND(c.generated) AS generated, c.data, \
@@ -1585,8 +1624,8 @@ class SpiderFootDb:
             FROM tbl_scan_results c, tbl_scan_results s, tbl_event_types t \
             WHERE c.scan_instance_id = ? AND c.source_event_hash = s.hash AND \
             s.scan_instance_id = c.scan_instance_id AND \
-            t.event = c.type AND s.hash in ('%s')" % "','".join(hashIds)
-        qvars = [instanceId]
+            t.event = c.type AND s.hash IN (" + ",".join(["?"] * len(hashIds)) + ")"
+        qvars = [instanceId] + hashIds
 
         with self.dbhLock:
             try:
@@ -1663,7 +1702,8 @@ class SpiderFootDb:
                 if parentId != "ROOT":
                     keepGoing = True
 
-        datamap[parentId] = row
+        if nextIds:
+            datamap[parentId] = row
         return [datamap, pc]
 
     def scanElementChildrenAll(self, instanceId: str, parentIds: list) -> list:
@@ -1707,9 +1747,9 @@ class SpiderFootDb:
                 keepGoing = False
                 break
 
+            nextIds = list()
             for row in nextSet:
                 datamap.append(row[8])
-                nextIds = list()
                 nextIds.append(row[8])
 
         return datamap
@@ -1769,7 +1809,7 @@ class SpiderFootDb:
         if not isinstance(eventHashes, list):
             raise TypeError(f"eventHashes is {type(eventHashes)}; expected list()")
 
-        uniqueId = str(hashlib.md5(str(time.time() + random.SystemRandom().randint(0, 99999999)).encode('utf-8')).hexdigest())  # noqa: DUO130
+        uniqueId = uuid.uuid4().hex
 
         qry = "INSERT INTO tbl_scan_correlation_results \
             (id, scan_instance_id, title, rule_name, rule_descr, rule_risk, rule_id, rule_logic) \
@@ -1780,23 +1820,17 @@ class SpiderFootDb:
                 self.dbh.execute(qry, (
                     uniqueId, instanceId, correlationTitle, ruleName, ruleDescr, ruleRisk, ruleId, ruleYaml
                 ))
+
+                # Map events to the correlation result in the same transaction
+                event_qry = "INSERT INTO tbl_scan_correlation_results_events \
+                    (correlation_id, event_hash) \
+                    VALUES (?, ?)"
+                self.dbh.executemany(event_qry, [
+                    (uniqueId, eventHash) for eventHash in eventHashes
+                ])
+
                 self.conn.commit()
             except sqlite3.Error as e:
                 raise IOError("Unable to create correlation result in database") from e
-
-        # Map events to the correlation result
-        qry = "INSERT INTO tbl_scan_correlation_results_events \
-            (correlation_id, event_hash) \
-            VALUES (?, ?)"
-
-        with self.dbhLock:
-            for eventHash in eventHashes:
-                try:
-                    self.dbh.execute(qry, (
-                        uniqueId, eventHash
-                    ))
-                    self.conn.commit()
-                except sqlite3.Error as e:
-                    raise IOError("Unable to create correlation result in database") from e
 
         return uniqueId

@@ -56,7 +56,7 @@ def main() -> None:
         '_maxthreads': 3,  # Number of modules to run concurrently
         '__logging': True,  # Logging in general
         '__outputfilter': None,  # Event types to filter from modules' output
-        '_useragent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:62.0) Gecko/20100101 Firefox/62.0',  # User-Agent to use for HTTP requests
+        '_useragent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0',  # User-Agent to use for HTTP requests
         '_dnsserver': '',  # Override the default resolver
         '_fetchtimeout': 5,  # number of seconds before giving up on a fetch
         '_internettlds': 'https://publicsuffix.org/list/effective_tld_names.dat',
@@ -70,6 +70,9 @@ def main() -> None:
         '_socks3port': '',
         '_socks4user': '',
         '_socks5pwd': '',
+        '_moduleactivitytimeout': 1800,  # seconds before killing an unresponsive module (0 = disabled)
+        '_maxscans': 10,  # max concurrent scans via web UI
+        '_maxstorage': 0,  # max bytes to store per event data (0 = unlimited)
     }
 
     sfOptdescs = {
@@ -86,6 +89,9 @@ def main() -> None:
         '_socks3port': 'SOCKS Server TCP Port. Usually 1080 for 4/5, 8080 for HTTP and 9050 for TOR.',
         '_socks4user': 'SOCKS Username. Valid only for SOCKS4 and SOCKS5 servers.',
         '_socks5pwd': "SOCKS Password. Valid only for SOCKS5 servers.",
+        '_moduleactivitytimeout': "Seconds of module inactivity before the module is killed (0 disables).",
+        '_maxscans': "Maximum number of concurrent scans allowed via the web UI.",
+        '_maxstorage': "Maximum bytes of event data to store (0 = unlimited).",
         '_modulesenabled': "Modules enabled for the scan."  # This is a hack to get a description for an option not actually available.
     }
 
@@ -466,6 +472,15 @@ def start_web_server(sfWebUiConfig: dict, sfConfig: dict, loggingQueue=None) -> 
         sfConfig (dict): SpiderFoot config options
         loggingQueue (Queue): main SpiderFoot logging queue
     """
+    try:
+        zombies = SpiderFootDb(sfConfig).scanInstanceReconcileZombies()
+        if zombies:
+            logging.getLogger("spiderfoot").info(
+                "Reconciled %s zombie scan(s) to ABORTED", len(zombies)
+            )
+    except Exception:
+        pass
+
     log = logging.getLogger(f"spiderfoot.{__name__}")
 
     web_host = sfWebUiConfig.get('host', '127.0.0.1')

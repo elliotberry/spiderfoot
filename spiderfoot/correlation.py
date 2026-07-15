@@ -91,8 +91,6 @@ class SpiderFootCorrelator:
             for k in rule['meta'].keys():
                 if isinstance(rule['meta'][k], str):
                     rule['meta'][k] = rule['meta'][k].strip()
-                else:
-                    rule['meta'][k] = rule[k]
 
         if not self.check_ruleset_validity(self.rules):
             raise SyntaxError("Sanity check of correlation rules failed.")
@@ -302,7 +300,21 @@ class SpiderFootCorrelator:
                     # point back to the same ID.
                     entity_missing[source['id']] = row['id']
 
+        MAX_ENTITY_DEPTH = 50
+        depth = 0
+        visited = set()
+
         while len(entity_missing) > 0:
+            depth += 1
+            if depth > MAX_ENTITY_DEPTH:
+                self.log.warning(
+                    f"enrich_event_entities: max depth ({MAX_ENTITY_DEPTH}) reached, "
+                    f"{len(entity_missing)} entities still unresolved"
+                )
+                break
+
+            visited.update(entity_missing.keys())
+
             self.log.debug(f"{len(entity_missing.keys())} entities are missing, going deeper...")
             new_missing = dict()
             self.log.debug(f"Getting sources for {len(entity_missing.keys())} items")
@@ -320,9 +332,10 @@ class SpiderFootCorrelator:
             for entity_candidate in entity_data:
                 event_id = entity_missing[entity_candidate[8]]
                 if self.type_entity_map[entity_candidate[15]] not in ['ENTITY', 'INTERNAL']:
-                    # key of this dictionary is the id we need to now get a source for,
-                    # and the value is the original ID of the item missing an entity
-                    new_missing[entity_candidate[9]] = event_id
+                    parent_id = entity_candidate[9]
+                    if parent_id in visited:
+                        continue
+                    new_missing[parent_id] = event_id
                 else:
                     events[event_id]['entity'].append({
                         'type': entity_candidate[15],
@@ -400,7 +413,7 @@ class SpiderFootCorrelator:
 
         if "." in field:
             ret = list()
-            key, field = field.split(".")
+            key, field = field.split(".", 1)
             for subevent in event[key]:
                 ret.extend(self.event_extract(subevent, field))
             return ret
@@ -421,7 +434,7 @@ class SpiderFootCorrelator:
         """
 
         if "." in field:
-            key, field = field.split(".")
+            key, field = field.split(".", 1)
             return any(self.event_keep(subevent, field, patterns, patterntype) for subevent in event[key])
 
         value = event[field]
@@ -508,6 +521,9 @@ class SpiderFootCorrelator:
                                               fetchEntities=fetchEntities,
                                               fetchChildren=fetchChildren,
                                               fetchSources=fetchSources)
+                if events is None:
+                    self.log.error(f"collect_from_db returned None for collection {collectIndex}")
+                    return []
                 step += 1
                 continue
 
@@ -553,7 +569,7 @@ class SpiderFootCorrelator:
                 field (str): TBD
                 value (str): TBD
             """
-            topfield, subfield = field.split(".")
+            topfield, subfield = field.split(".", 1)
             if field.startswith(topfield + "."):
                 for s in event[topfield]:
                     if s[subfield] != value:
@@ -721,6 +737,16 @@ class SpiderFootCorrelator:
                 del (buckets[bucket])
             return
 
+        # Minimum sample size for meaningful outlier detection
+        MIN_OUTLIER_BUCKETS = 5
+        if len(countmap) < MIN_OUTLIER_BUCKETS:
+            self.log.debug(
+                f"Insufficient sample size ({len(countmap)} buckets) for outlier analysis, skipping"
+            )
+            for bucket in list(buckets.keys()):
+                del (buckets[bucket])
+            return
+
         total = float(sum(countmap.values()))
         avg = total / float(len(list(countmap.keys())))
         avgpct = (avg / total) * 100.0
@@ -867,6 +893,10 @@ class SpiderFootCorrelator:
                           fetchSources,
                           fetchEntities,
                           collectIndex))
+            # Short-circuit: if first collection returned nothing, skip remaining
+            if collectIndex == 0 and not events:
+                self.log.debug("First collection returned no events, short-circuiting")
+                break
 
         if not events:
             self.log.debug("No events found after going through collections.")
@@ -923,6 +953,7 @@ class SpiderFootCorrelator:
                 v = self.event_extract(data[0], m)[0]
             except Exception:
                 self.log.error(f"Field requested was not available: {m}")
+                continue
             title = title.replace("{" + m + "}", v.replace("\r", "").split("\n")[0])
         return title
 

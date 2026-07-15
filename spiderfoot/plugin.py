@@ -1,6 +1,7 @@
 from contextlib import suppress
 import io
 import logging
+import time
 import os
 import queue
 import sys
@@ -133,12 +134,15 @@ class SpiderFootPlugin():
     maxThreads = 1
 
     def __init__(self) -> None:
+        self._listenerModules = []
         # Holds the thread object when module threading is enabled
         self.thread = None
         # logging overrides
         self._log = None
         # Shared thread pool for all modules
         self.sharedThreadPool = None
+        # Last activity timestamp for watchdog
+        self._lastActivity = time.time()
 
     @property
     def log(self):
@@ -163,6 +167,35 @@ class SpiderFootPlugin():
 
         self._listenerModules = list()
         self._stopScanning = False
+
+    def _mergeOpts(self, userOpts: dict) -> None:
+        """Merge user-supplied options into self.opts with type coercion.
+
+        Values from the database/UI arrive as strings. This method casts
+        each incoming value to match the type of the existing default in
+        self.opts, preventing TypeErrors in module code that does arithmetic
+        or comparisons on option values.
+        """
+        for opt in userOpts:
+            if opt in self.opts and userOpts[opt] is not None:
+                default = self.opts[opt]
+                val = userOpts[opt]
+                try:
+                    if isinstance(default, bool):
+                        self.opts[opt] = val if isinstance(val, bool) else str(val) == "1"
+                    elif isinstance(default, int):
+                        self.opts[opt] = int(val)
+                    elif isinstance(default, float):
+                        self.opts[opt] = float(val)
+                    elif isinstance(default, list):
+                        self.opts[opt] = val if isinstance(val, list) else [val]
+                    else:
+                        self.opts[opt] = val
+                except (ValueError, TypeError):
+                    # Keep the default if conversion fails
+                    pass
+            else:
+                self.opts[opt] = userOpts[opt]
 
     def setup(self, sf, userOpts: dict = {}) -> None:
         """Will always be overriden by the implementer.
@@ -357,14 +390,22 @@ class SpiderFootPlugin():
         # notification from one of the upstream events.
 
         prevEvent = sfEvent.sourceEvent
-        while prevEvent is not None:
+        max_depth = 1000
+        depth = 0
+        while prevEvent is not None and depth < max_depth:
             if prevEvent.sourceEvent is not None and prevEvent.sourceEvent.eventType == sfEvent.eventType and prevEvent.sourceEvent.data.lower() == eventData.lower():
                 storeOnly = True
                 break
+            depth += 1
             prevEvent = prevEvent.sourceEvent
+        if depth >= max_depth:
+            self.log.warning(f"Event chain depth limit ({max_depth}) reached for {eventName}")
+            storeOnly = True
 
         # output to queue if applicable
         if self.outgoingEventQueue is not None:
+            self._lastActivity = time.time()
+            sfEvent.storeOnly = storeOnly
             self.outgoingEventQueue.put(sfEvent)
         # otherwise, call other modules directly
         else:
@@ -434,6 +475,17 @@ class SpiderFootPlugin():
             bool: True if the module is currently processing data.
         """
         return self.sharedThreadPool.countQueuedTasks(f"{self.__name__}_threadWorker") > 0
+
+
+    def _rateLimit(self) -> None:
+        """Sleep according to the module's configured delay between API calls.
+
+        The delay is read from the module's '_delay' opt (set globally or
+        per-module). No-op when delay is 0/missing.
+        """
+        delay = self.opts.get('_delay', 0)
+        if delay:
+            time.sleep(float(delay))
 
     def watchedEvents(self) -> list:
         """What events is this module interested in for input. The format is a list
@@ -550,6 +602,7 @@ class SpiderFootPlugin():
             while not self.checkForStop():
                 try:
                     sfEvent = self.incomingEventQueue.get_nowait()
+                    self._lastActivity = time.time()
                 except queue.Empty:
                     sleep(.3)
                     continue

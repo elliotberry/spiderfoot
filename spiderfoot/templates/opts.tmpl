@@ -56,10 +56,10 @@
 % for opt in sorted(opts.keys()):
     % if not opt.startswith("__"):
     <tr><td>${opts['__globaloptdescs__'].get(opt) or "No description available"}</td><td style='vertical-align: middle'>
-        % if type(opts[opt]) is int:
-        <div class='form-group'>
+        % if type(opts[opt]) is int or type(opts[opt]) is float:
+            <div class='form-group'>
             <input id='${opt}' class='form-control' type=text value="${opts[opt]}">
-        </div>
+            </div>
         % endif
         % if type(opts[opt]) is str:
         <div class='form-group'>
@@ -157,7 +157,7 @@
                 % endif
               </td>
               <td style='vertical-align: middle'>
-            % if type(modopts[opt]) is int:
+            % if type(modopts[opt]) is int or type(modopts[opt]) is float:
                 <div class='form-group'>
                     <input id='${mod}:${opt}' class='form-control' type=text value="${modopts[opt]}">
                 </div>

@@ -14,8 +14,18 @@ function clearSettings() {
 }
 
 function switchTab(tab) {
-  sf.hide('optsect_' + activeTab);
-  sf.show('optsect_' + tab);
+  var prevPane = sf.el('optsect_' + activeTab);
+  var nextPane = sf.el('optsect_' + tab);
+  if (prevPane) {
+    prevPane.style.display = 'none';
+    sf.removeClass(prevPane, 'active');
+  }
+  if (nextPane) {
+    // Bootstrap .tab-pane { display:none } unless .active; empty display
+    // (sf.show) would leave panes blank under that rule.
+    nextPane.style.display = 'block';
+    sf.addClass(nextPane, 'active');
+  }
   sf.removeClass('tab_' + activeTab, 'active');
   sf.addClass('tab_' + tab, 'active');
   activeTab = tab;
