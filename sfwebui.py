@@ -411,7 +411,7 @@ class SpiderFootWebUi:
             rows = []
             for row in correlations:
                 correlation = row[1]
-                rule_name = row[2]
+                rule_name = row[4]
                 rule_risk = row[3]
                 rule_description = row[5]
                 rows.append([rule_name, correlation, rule_risk, rule_description])
@@ -419,7 +419,7 @@ class SpiderFootWebUi:
             if scan_name:
                 fname = f"{self._safe_filename(scan_name)}-SpiderFoot-correlations.xlsx"
             else:
-                fname = "SpiderFoot-correlations.xlxs"
+                fname = "SpiderFoot-correlations.xlsx"
 
             cherrypy.response.headers['Content-Disposition'] = f"attachment; filename={fname}"
             cherrypy.response.headers['Content-Type'] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -433,10 +433,10 @@ class SpiderFootWebUi:
 
             for row in correlations:
                 correlation = row[1]
-                rule_name = row[2]
+                rule_name = row[4]
                 rule_risk = row[3]
                 rule_description = row[5]
-            parser.writerow([self._csv_safe(rule_name), self._csv_safe(correlation), self._csv_safe(rule_risk), self._csv_safe(rule_description)])
+                parser.writerow([self._csv_safe(rule_name), self._csv_safe(correlation), self._csv_safe(rule_risk), self._csv_safe(rule_description)])
 
             if scan_name:
                 fname = f"{self._safe_filename(scan_name)}-SpiderFoot-correlations.csv"
@@ -1791,7 +1791,18 @@ class SpiderFootWebUi:
             return retdata
 
         for row in corrdata:
-            retdata.append([row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]])
+            # Escape title, risk, and description for safe HTML embedding in the UI.
+            # row: id, title, rule_id, risk, rule_name, rule_descr, rule_logic, event_count
+            retdata.append([
+                row[0],
+                html.escape(row[1]) if row[1] else row[1],
+                row[2],
+                html.escape(row[3]) if row[3] else row[3],
+                row[4],
+                html.escape(row[5]) if row[5] else row[5],
+                row[6],
+                row[7],
+            ])
 
         return retdata
 

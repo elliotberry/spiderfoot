@@ -1,5 +1,6 @@
 import pytest
 import unittest
+from unittest.mock import patch
 
 from modules.sfp_tool_trufflehog import sfp_tool_trufflehog
 from sflib import SpiderFoot
@@ -47,3 +48,49 @@ class TestModuleToolTrufflehog(unittest.TestCase):
 
         self.assertIsNone(result)
         self.assertTrue(module.errorState)
+
+    def test_handleEvent_malicious_repo_url_should_not_invoke_subprocess(self):
+        """A crafted event whose extracted repository URL begins with '-' (or
+        contains whitespace) must be refused and never reach the subprocess,
+        preventing command-line argument injection into trufflehog."""
+        sf = SpiderFoot(self.default_options)
+
+        module = sfp_tool_trufflehog()
+        module.setup(sf, {'trufflehog_path': '/usr/bin/trufflehog'})
+
+        target = SpiderFootTarget('example.com', 'INTERNET_NAME')
+        module.setTarget(target)
+
+        root = SpiderFootEvent('ROOT', 'example.com', '', '')
+        malicious = 'Github: --proxy=http://evil https://github.com/x'
+        evt = SpiderFootEvent('SOCIAL_MEDIA', malicious, 'test', root)
+
+        with patch('modules.sfp_tool_trufflehog.os.path.isfile', return_value=True), \
+             patch('modules.sfp_tool_trufflehog.Popen') as mock_popen:
+            module.handleEvent(evt)
+
+        mock_popen.assert_not_called()
+
+    def test_handleEvent_host_confusion_url_should_not_invoke_subprocess(self):
+        """A URL whose authority is not an allowlisted code host must be refused,
+        even when the raw event data contains an allowlisted host as a substring."""
+        sf = SpiderFoot(self.default_options)
+
+        module = sfp_tool_trufflehog()
+        module.setup(sf, {'trufflehog_path': '/usr/bin/trufflehog'})
+
+        target = SpiderFootTarget('example.com', 'INTERNET_NAME')
+        module.setTarget(target)
+
+        root = SpiderFootEvent('ROOT', 'example.com', '', '')
+
+        for confusing in (
+            'Github: https://evil.com/?x=github.com/repo',
+            'Github: https://github.com.evil.com/repo',
+        ):
+            with self.subTest(url=confusing):
+                evt = SpiderFootEvent('SOCIAL_MEDIA', confusing, 'test', root)
+                with patch('modules.sfp_tool_trufflehog.os.path.isfile', return_value=True), \
+                     patch('modules.sfp_tool_trufflehog.Popen') as mock_popen:
+                    module.handleEvent(evt)
+                mock_popen.assert_not_called()

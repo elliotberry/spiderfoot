@@ -87,7 +87,7 @@ class SpiderFootDb:
         )",
         "CREATE TABLE tbl_scan_correlation_results ( \
             id                  VARCHAR NOT NULL PRIMARY KEY, \
-            scan_instance_id    VARCHAR NOT NULL REFERENCES tbl_scan_instances(guid), \
+            scan_instance_id    VARCHAR NOT NULL REFERENCES tbl_scan_instance(guid), \
             title               VARCHAR NOT NULL, \
             rule_risk           VARCHAR NOT NULL, \
             rule_id             VARCHAR NOT NULL, \
@@ -1153,10 +1153,17 @@ class SpiderFootDb:
         qry2 = "DELETE FROM tbl_scan_config WHERE scan_instance_id = ?"
         qry3 = "DELETE FROM tbl_scan_results WHERE scan_instance_id = ?"
         qry4 = "DELETE FROM tbl_scan_log WHERE scan_instance_id = ?"
+        # Correlation event mappings reference correlation ids; delete them before
+        # the correlation rows. Without these, deleting a scan orphaned correlation data.
+        qry5 = "DELETE FROM tbl_scan_correlation_results_events WHERE correlation_id IN \
+            (SELECT id FROM tbl_scan_correlation_results WHERE scan_instance_id = ?)"
+        qry6 = "DELETE FROM tbl_scan_correlation_results WHERE scan_instance_id = ?"
         qvars = [instanceId]
 
         with self.dbhLock:
             try:
+                self.dbh.execute(qry5, qvars)
+                self.dbh.execute(qry6, qvars)
                 self.dbh.execute(qry1, qvars)
                 self.dbh.execute(qry2, qvars)
                 self.dbh.execute(qry3, qvars)

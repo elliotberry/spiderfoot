@@ -74,7 +74,12 @@ class sfp_gravatar(SpiderFootPlugin):
     # https://secure.gravatar.com/site/implement/
     # https://secure.gravatar.com/site/implement/profiles/
     def query(self, qry):
-        email_hash = hashlib.md5(qry.encode('utf-8', errors='replace').lower()).hexdigest()  # noqa: DUO130
+        # MD5 is mandated by the Gravatar API (not a security control).
+        digest = qry.encode('utf-8', errors='replace').lower()
+        try:
+            email_hash = hashlib.md5(digest, usedforsecurity=False).hexdigest()  # noqa: DUO130
+        except TypeError:
+            email_hash = hashlib.md5(digest).hexdigest()  # noqa: DUO130
         output = 'json'
 
         res = self.sf.fetchUrl("https://secure.gravatar.com/" + email_hash + '.' + output,

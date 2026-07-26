@@ -1281,3 +1281,68 @@ class TestSpiderFootDb(unittest.TestCase):
             with self.subTest(invalid_type=invalid_type):
                 with self.assertRaises(TypeError):
                     sfdb.correlationResultCreate("", "", "", "", "", "", invalid_type, [])
+
+    def test_schema_foreign_keys_reference_existing_tables(self):
+        """All schema FOREIGN KEY clauses must reference a table the schema creates.
+
+        Regression test for the 'tbl_scan_instances' (plural) typo in
+        tbl_scan_correlation_results: it referenced a table that does not exist
+        and would break every correlation-result insert if SQLite foreign-key
+        enforcement were ever enabled.
+        """
+        import sqlite3
+
+        conn = sqlite3.connect(":memory:")
+        try:
+            cur = conn.cursor()
+            for query in SpiderFootDb.createSchemaQueries:
+                cur.execute(query)
+            conn.commit()
+
+            cur.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+            tables = {row[0] for row in cur.fetchall()}
+
+            dangling = []
+            for table in tables:
+                for fk in cur.execute(f"PRAGMA foreign_key_list('{table}')").fetchall():
+                    referenced_table = fk[2]
+                    if referenced_table not in tables:
+                        dangling.append((table, referenced_table))
+
+            self.assertEqual(
+                dangling,
+                [],
+                f"Schema has foreign keys referencing non-existent tables: {dangling}",
+            )
+        finally:
+            conn.close()
+
+    def test_scanInstanceDelete_removes_correlation_results(self):
+        """Deleting a scan must also remove its correlation results and the
+        correlation->event mappings, rather than orphaning them in the database.
+        """
+        import contextlib
+
+        sfdb = SpiderFootDb(self.default_options, False)
+        scan_id = "test-delete-correlations-cleanup"
+
+        with contextlib.suppress(Exception):
+            sfdb.scanInstanceDelete(scan_id)
+
+        sfdb.scanInstanceCreate(scan_id, "examplescan", "example.com")
+        sfdb.correlationResultCreate(
+            scan_id, "rule_id", "Rule Name", "descr", "INFO",
+            "id: rule_id", "title", ["hash1", "hash2"],
+        )
+        self.assertTrue(
+            len(sfdb.scanCorrelationList(scan_id)) >= 1,
+            "correlation should exist before the scan is deleted",
+        )
+
+        sfdb.scanInstanceDelete(scan_id)
+
+        self.assertEqual(
+            sfdb.scanCorrelationList(scan_id),
+            [],
+            "correlation results were orphaned after deleting the scan",
+        )

@@ -15,6 +15,7 @@ import sys
 import json
 import os
 from subprocess import PIPE, Popen, TimeoutExpired
+from urllib.parse import urlparse
 
 from spiderfoot import SpiderFootPlugin, SpiderFootEvent
 
@@ -92,27 +93,37 @@ class sfp_tool_trufflehog(SpiderFootPlugin):
             self.errorState = True
             return
 
+        # Extract the candidate repository URL. Do not pre-filter on a raw substring
+        # such as "github.com/" in eventData: that is satisfied by hostile values
+        # like https://evil.com/?x=github.com/ (CWE-20). The parsed-hostname
+        # allowlist below is the authoritative gate.
         if eventName == "SOCIAL_MEDIA":
-            if "github.com/" in eventData.lower() or "gitlab.com/" in eventData.lower() or "bitbucket.org/" in eventData.lower():
-                try:
-                    url = eventData.split(": ")[1].replace("<SFURL>", "").replace("</SFURL>", "")
-                except BaseException:
-                    self.debug("Unable to extract repository URL, skipping.")
-                    return
-            else:
+            try:
+                url = eventData.split(": ")[1].replace("<SFURL>", "").replace("</SFURL>", "")
+            except BaseException:
+                self.debug("Unable to extract repository URL, skipping.")
                 return
-
-        if eventName == "PUBLIC_CODE_REPO" and self.opts['allrepos']:
-            if "github.com/" in eventData.lower() or "gitlab.com/" in eventData.lower() or "bitbucket.org/" in eventData.lower():
-                try:
-                    url = eventData.split("\n")[1].replace("URL: ", "")
-                except BaseException:
-                    self.debug("Unable to extract repository URL, skipping.")
-                    return
-            else:
+        elif eventName == "PUBLIC_CODE_REPO" and self.opts['allrepos']:
+            try:
+                url = eventData.split("\n")[1].replace("URL: ", "")
+            except BaseException:
+                self.debug("Unable to extract repository URL, skipping.")
                 return
 
         if not url:
+            return
+
+        # Require a well-formed http(s) URL with no whitespace so a crafted value
+        # beginning with '-' cannot be parsed by trufflehog as a CLI flag.
+        url = url.strip()
+        if " " in url or not url.lower().startswith(("http://", "https://")):
+            self.debug(f"Refusing to scan malformed repository URL: {url}")
+            return
+
+        host = (urlparse(url).hostname or "").lower()
+        allowed_domains = ("github.com", "gitlab.com", "bitbucket.org")
+        if host not in allowed_domains and not any(host.endswith("." + d) for d in allowed_domains):
+            self.debug(f"Refusing to scan non-allowlisted repository host: {host}")
             return
 
         if url in self.results:
@@ -132,6 +143,8 @@ class sfp_tool_trufflehog(SpiderFootPlugin):
         else:
             args.append("--entropy=True")
 
+        # "--" marks end-of-options so the URL is always a positional argument.
+        args.append("--")
         args.append(url)
         try:
             p = Popen(args, stdout=PIPE, stderr=PIPE)
