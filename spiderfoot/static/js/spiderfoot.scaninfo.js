@@ -397,9 +397,10 @@ function browseCorrelations(instanceId) {
             return;
         }
         var table = "<table id='scansummary-content' class='table table-bordered table-striped table-condensed tablesorter small'>";
-        table += "<thead><tr><th>Correlation</th><th>Risk</th><th>Data Elements</th></tr></thead><tbody>";
+        table += "<thead><tr><th>Correlation</th><th>Risk</th><th>AI Triage</th><th>Data Elements</th></tr></thead><tbody>";
         for (var i = 0; i < data.length; i++) {
             table += "<tr>";
+            // Title/risk/description are html.escape()'d server-side in scancorrelations.
             table += "<td><a style='cursor: pointer' onClick='toggleCorrelation(\"" + instanceId + "\",\"" + data[i][0] + "\")'>" + data[i][1] + "</a>&nbsp;&nbsp;";
             table += "<i class='glyphicon glyphicon-question-sign' style='color: #ccc' rel='tooltip' data-title=\"" + data[i][5] + "\"></i>";
             table += "</td>";
@@ -416,14 +417,80 @@ function browseCorrelations(instanceId) {
                 statusy = "alert-success";
             }
             table += "<td><span class='badge " + statusy + "'>" + data[i][3] + "</span></td>";
+            table += "<td id='aitriage_td_" + data[i][0] + "'></td>";
             table += "<td>" + data[i][7] + "</td>";
-            table += "</tr><tr class='hidden' id='corrwell_tr_" + data[i][0] + "'><td colspan=3 id='corrwell_td_" + data[i][0] + "'></td></tr>";
+            table += "</tr><tr class='hidden' id='corrwell_tr_" + data[i][0] + "'><td colspan=4 id='corrwell_td_" + data[i][0] + "'></td></tr>";
         }
         table += "</tbody></table>";
         sf.fadeOut('#loader', 500);
         sf.appendHtml('#mainbody', table);
         sfTable.init(sf.el('scansummary-content'), { headers: { 1: { sorter: 'criticality' } } });
         sf.updateTooltips();
+        renderTriageBadges(instanceId);
+    });
+}
+
+function aiTriageBadgeClass(priority) {
+    switch (priority) {
+        case "CRITICAL":
+        case "HIGH":
+            return "badge alert-danger";
+        case "MEDIUM":
+            return "badge alert-warning";
+        case "LOW":
+            return "badge alert-info";
+        case "INFO":
+            return "badge";
+        default:
+            return "badge";
+    }
+}
+
+function renderTriageBadges(instanceId) {
+    sf.fetchData(docroot + '/scancorrelationtriageresults', {'id': instanceId}, function(rows) {
+        if (!rows || rows.length == 0) {
+            return;
+        }
+        for (var i = 0; i < rows.length; i++) {
+            var corrId = rows[i][0];
+            var priority = String(rows[i][1]);
+            var explanation = rows[i][3];
+            var cell = document.getElementById("aitriage_td_" + corrId);
+            if (!cell) {
+                continue;
+            }
+            var badge = document.createElement("span");
+            badge.className = aiTriageBadgeClass(priority.toUpperCase());
+            badge.textContent = priority;
+            while (cell.firstChild) {
+                cell.removeChild(cell.firstChild);
+            }
+            cell.appendChild(badge);
+            if (explanation) {
+                var expl = document.createElement("div");
+                expl.className = "small text-muted";
+                expl.textContent = String(explanation);
+                cell.appendChild(expl);
+            }
+        }
+    });
+}
+
+function triageCorrelations(instanceId) {
+    var status = document.getElementById("ai-triage-status");
+    if (status) {
+        status.textContent = " Triaging…";
+    }
+    sf.fetchData(docroot + '/scancorrelationtriage', {'id': instanceId}, function(d) {
+        if (!status) {
+            return;
+        }
+        if (d && d.error) {
+            status.textContent = " " + d.error;
+            return;
+        }
+        status.textContent = " Triaged " + (d ? d.triaged : 0) + " findings.";
+        browseCorrelations(instanceId);
     });
 }
 

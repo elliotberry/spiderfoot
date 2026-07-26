@@ -38,6 +38,7 @@ from sfscan import startSpiderFootScanner
 
 from spiderfoot import SpiderFootDb
 from spiderfoot import SpiderFootHelpers
+from spiderfoot import CorrelationTriage
 from spiderfoot import __version__
 from spiderfoot.logger import logListenerSetup, logWorkerSetup
 
@@ -997,9 +998,11 @@ class SpiderFootWebUi:
         if res is None:
             return self.error("Scan ID not found.")
 
+        llm_enabled = CorrelationTriage(dbh, self.config).is_enabled()
+
         templ = Template(filename='spiderfoot/templates/scaninfo.tmpl', lookup=self.lookup, input_encoding='utf-8')
         return templ.render(id=id, name=html.escape(res[0]), status=res[5], docroot=self.docroot, version=__version__,
-                            pageid="SCANLIST")
+                            pageid="SCANLIST", llm_enabled=llm_enabled)
 
     @cherrypy.expose
     def opts(self: 'SpiderFootWebUi', updated: str = None) -> str:
@@ -1805,6 +1808,48 @@ class SpiderFootWebUi:
             ])
 
         return retdata
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def scancorrelationtriage(self: 'SpiderFootWebUi', id: str) -> dict:
+        """Run on-demand LLM triage over a scan's correlation results.
+
+        Args:
+            id (str): scan ID
+
+        Returns:
+            dict: {enabled, triaged, truncated, model} or an error object.
+        """
+        dbh = SpiderFootDb(self.config)
+        triage = CorrelationTriage(dbh, self.config)
+
+        if not triage.is_enabled():
+            return {"enabled": False, "triaged": 0, "truncated": False, "model": None,
+                    "error": "AI triage is not configured."}
+
+        try:
+            return triage.triage(id)
+        except Exception:
+            self.log.error("LLM correlation triage failed", exc_info=False)
+            return {"enabled": True, "triaged": 0, "truncated": False, "model": None,
+                    "error": "AI triage failed."}
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def scancorrelationtriageresults(self: 'SpiderFootWebUi', id: str) -> list:
+        """Return stored LLM triage rows for a scan (read-only; no LLM call).
+
+        Args:
+            id (str): scan ID
+
+        Returns:
+            list: rows (correlation_id, priority, rank, explanation, grp, model, generated)
+        """
+        dbh = SpiderFootDb(self.config)
+        try:
+            return dbh.scanCorrelationLlmList(id)
+        except Exception:
+            return []
 
     @cherrypy.expose
     @cherrypy.tools.json_out()

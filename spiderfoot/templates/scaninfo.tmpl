@@ -1,4 +1,5 @@
 ## -*- coding: utf-8 -*-
+<%page args="llm_enabled=False"/>
 <%include file="HEADER.tmpl"/>
 <%
   if status == "FINISHED":
@@ -18,6 +19,10 @@
    <div class="btn-group">
       <a id='btn-status' class="btn btn-default" onClick='scanSummaryView("${id}")'><i class='glyphicon glyphicon-eye-open'></i>&nbsp;Summary</a>
       <a id='btn-correlations' class="btn btn-default" onClick='browseCorrelations("${id}")'><i class='glyphicon glyphicon-exclamation-sign'></i>&nbsp;Correlations</a>
+% if llm_enabled:
+      <a id='btn-ai-triage' class="btn btn-default" data-scan-id="${id}" onClick='triageCorrelations("${id}")'><i class='glyphicon glyphicon-flash'></i>&nbsp;Triage with AI</a>
+      <span id='ai-triage-status' style='margin-left: 8px'></span>
+% endif
       <a id='btn-browse' class="btn btn-default" onClick='browseEventList("${id}")'><i class='glyphicon glyphicon-th-list'></i>&nbsp;Browse</a>
       <a id='btn-graph' class="btn btn-default" onClick='graphEvents("${id}")'><i class='glyphicon glyphicon-asterisk'></i>&nbsp;Graph</a>
       <a id='btn-info' class="btn btn-default" onClick='viewScanConfig("${id}")'><i class='glyphicon glyphicon-cog'></i>&nbsp;Scan Settings</a>
