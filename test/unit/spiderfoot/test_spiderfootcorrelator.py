@@ -172,3 +172,24 @@ class TestSpiderFootCorrelator(unittest.TestCase):
             "collections": []
         }
         self.assertFalse(correlator.check_rule_validity(rule))
+
+    def test_event_keep_regex_valid_pattern(self):
+        sfdb = SpiderFootDb(self.default_options, False)
+        correlator = SpiderFootCorrelator(sfdb, {})
+
+        event = {"data": "admin@example.com"}
+        self.assertTrue(correlator.event_keep(event, "data", [r"^admin@"], "regex"))
+        self.assertFalse(correlator.event_keep(event, "data", [r"^root@"], "regex"))
+        self.assertFalse(correlator.event_keep(event, "data", ["not ^admin@"], "regex"))
+
+    def test_event_keep_regex_invalid_pattern_should_not_raise(self):
+        sfdb = SpiderFootDb(self.default_options, False)
+        correlator = SpiderFootCorrelator(sfdb, {})
+
+        event = {"data": "admin@example.com"}
+        # A malformed regex must be skipped (treated as non-match), not abort the run
+        self.assertFalse(correlator.event_keep(event, "data", ["([unclosed"], "regex"))
+        # Valid patterns alongside an invalid one still apply
+        self.assertTrue(correlator.event_keep(event, "data", ["([unclosed", r"^admin@"], "regex"))
+        # An invalid negated pattern excludes nothing
+        self.assertTrue(correlator.event_keep(event, "data", ["not ([unclosed"], "regex"))

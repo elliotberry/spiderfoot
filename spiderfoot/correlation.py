@@ -170,7 +170,7 @@ class SpiderFootCorrelator:
 
                 for r in regexps:
                     for t in self.types:
-                        if re.search(r, t[1]):
+                        if self._regex_search(r, t[1]):
                             criterias['eventType'].append(t[1])
 
             if matchrule['method'] == 'exact':
@@ -420,6 +420,26 @@ class SpiderFootCorrelator:
 
         return [event[field]]
 
+    def _regex_search(self, pattern: str, value: str, flags: int = 0):
+        """Run re.search, treating an invalid pattern as a non-match.
+
+        Correlation rules (and their regex patterns) are loaded from YAML, so a
+        single malformed pattern must not abort the entire correlation run.
+
+        Args:
+            pattern (str): regular expression
+            value (str): string to search
+            flags (int): re flags
+
+        Returns:
+            re.Match | None: match object, or None if no match or invalid pattern
+        """
+        try:
+            return re.search(pattern, value, flags)
+        except re.error as exc:
+            self.log.warning(f"Invalid regex {pattern!r} in correlation rule, skipping: {exc}")
+            return None
+
     def event_keep(self, event: dict, field: str, patterns: str, patterntype: str) -> bool:
         """Keep event field.
 
@@ -461,11 +481,11 @@ class SpiderFootCorrelator:
                 if pattern.startswith("not "):
                     ret = True
                     pattern = re.sub(r"^not\s+", "", pattern)
-                    if re.search(pattern, value, re.IGNORECASE):
+                    if self._regex_search(pattern, value, re.IGNORECASE):
                         return False
                 else:
                     ret = False
-                    if re.search(pattern, value, re.IGNORECASE):
+                    if self._regex_search(pattern, value, re.IGNORECASE):
                         return True
             if ret:
                 return True
