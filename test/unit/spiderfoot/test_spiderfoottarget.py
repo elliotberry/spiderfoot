@@ -272,6 +272,23 @@ class TestSpiderFootTarget(unittest.TestCase):
         matches = target.matches(parent_domain, includeParents=True)
         self.assertTrue(matches)
 
+    def test_matches_internet_name_should_be_case_insensitive(self):
+        target = SpiderFootTarget('example.com', 'INTERNET_NAME')
+
+        self.assertTrue(target.matches('EXAMPLE.COM'))
+        self.assertTrue(target.matches('Sub.Example.COM', includeChildren=True))
+
+    def test_matches_mixed_case_target_value_should_match_lowercase_value(self):
+        target = SpiderFootTarget('Example.COM', 'INTERNET_NAME')
+
+        self.assertTrue(target.matches('example.com'))
+
+    def test_matches_lookalike_domain_should_return_False(self):
+        target = SpiderFootTarget('example.com', 'INTERNET_NAME')
+
+        self.assertFalse(target.matches('evilexample.com'))
+        self.assertFalse(target.matches('EvilExample.COM'))
+
     def test_matches_argument_value_any_human_name_should_return_True(self):
         target_value = 'SpiderFoot'
         target_type = 'HUMAN_NAME'
