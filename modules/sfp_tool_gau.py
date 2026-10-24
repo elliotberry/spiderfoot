@@ -26,6 +26,10 @@ class sfp_tool_gau(SpiderFootPlugin):
         "useCases": ["Investigate", "Footprint", "Passive"],
         "categories": ["Search Engines"],
         "toolDetails": {
+            "name": "gau (Get All URLs)",
+            "description": "Fetches known URLs from the Wayback Machine, Common Crawl, OTX and URLScan.",
+            "website": "https://github.com/lc/gau",
+            "repository": "https://github.com/lc/gau",
             "binaryName": "gau",
             "installUrl": "https://github.com/lc/gau",
         },

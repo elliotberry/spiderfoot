@@ -27,6 +27,10 @@ class sfp_tool_amass(SpiderFootPlugin):
         "useCases": ["Investigate", "Footprint", "Passive"],
         "categories": ["Passive DNS"],
         "toolDetails": {
+            "name": "OWASP Amass",
+            "description": "In-depth attack surface mapping and external asset discovery.",
+            "website": "https://owasp.org/www-project-amass/",
+            "repository": "https://github.com/owasp-amass/amass",
             "binaryName": "amass",
             "installUrl": "https://github.com/owasp-amass/amass",
         },

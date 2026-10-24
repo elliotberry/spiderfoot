@@ -26,6 +26,10 @@ class sfp_tool_gitleaks(SpiderFootPlugin):
         "useCases": ["Investigate", "Passive"],
         "categories": ["Crawling and Scanning"],
         "toolDetails": {
+            "name": "Gitleaks",
+            "description": "Detects hardcoded secrets such as passwords, API keys and tokens in git repositories.",
+            "website": "https://gitleaks.io/",
+            "repository": "https://github.com/gitleaks/gitleaks",
             "binaryName": "gitleaks",
             "installUrl": "https://github.com/gitleaks/gitleaks",
         },

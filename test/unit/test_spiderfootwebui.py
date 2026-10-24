@@ -102,7 +102,7 @@ class TestSpiderFootWebUi(unittest.TestCase):
         ])
         self.assertIsInstance(clean_input, list)
         self.assertEqual(clean_input, [
-            '&lt;p&gt;some HTML with "some quotes" & some JavaScript\n&lt;script&gt;alert(&#x27;JavaScript&#x27;)&lt;/script&gt;&lt;/p&gt;',
+            '&lt;p&gt;some HTML with &quot;some quotes&quot; &amp; some JavaScript\n&lt;script&gt;alert(&#x27;JavaScript&#x27;)&lt;/script&gt;&lt;/p&gt;',
             "Some more input. This function accepts a list"
         ])
 
@@ -435,7 +435,19 @@ class TestSpiderFootWebUi(unittest.TestCase):
 
         query = sfwebui.query("UPDATE 1")
         self.assertIsInstance(query, dict)
-        self.assertEqual("Non-SELECTs are unpredictable and not recommended.", query.get('error').get('message'))
+        self.assertEqual("Only SELECT queries are allowed.", query.get('error').get('message'))
+
+        query = sfwebui.query("SELECT 1; SELECT 2")
+        self.assertIsInstance(query, dict)
+        self.assertEqual("Semicolons are not allowed in queries.", query.get('error').get('message'))
+
+        query = sfwebui.query("SELECT * FROM pragma_table_info('tbl_scan_instance')")
+        self.assertIsInstance(query, dict)
+        self.assertEqual("'pragma' is not permitted.", query.get('error').get('message'))
+
+        query = sfwebui.query("SELECT * FROM tbl_config")
+        self.assertIsInstance(query, dict)
+        self.assertEqual("Access to tbl_config is not permitted via this endpoint.", query.get('error').get('message'))
 
     @unittest.skip("todo")
     def test_start_scan_should_start_a_scan(self):

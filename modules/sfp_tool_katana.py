@@ -27,6 +27,10 @@ class sfp_tool_katana(SpiderFootPlugin):
         "useCases": ["Investigate", "Footprint"],
         "categories": ["Crawling and Scanning"],
         "toolDetails": {
+            "name": "katana",
+            "description": "Next-generation crawling and spidering framework with headless browser support.",
+            "website": "https://projectdiscovery.io/",
+            "repository": "https://github.com/projectdiscovery/katana",
             "binaryName": "katana",
             "installUrl": "https://github.com/projectdiscovery/katana",
         },

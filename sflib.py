@@ -773,6 +773,23 @@ class SpiderFoot:
         except BaseException:
             return False
 
+    @staticmethod
+    def _isPrivateIp(ip) -> bool:
+        """Check if an IP address is in a private (RFC1918 / RFC4193 ULA / link-local) range.
+
+        netaddr 1.0 removed IPAddress.is_private(), so fall back to its replacements.
+
+        Args:
+            ip (str): IPv4 or IPv6 address
+
+        Returns:
+            bool: IP address is private
+        """
+        addr = netaddr.IPAddress(ip)
+        if hasattr(addr, 'is_private'):
+            return addr.is_private()
+        return addr.is_ipv4_private_use() or addr.is_ipv6_unique_local() or addr.is_link_local()
+
     def isPublicIpAddress(self, ip: str) -> bool:
         """Check if an IP address is public.
 
@@ -796,7 +813,7 @@ class SpiderFoot:
             return False
         if netaddr.IPAddress(ip).is_multicast():
             return False
-        if netaddr.IPAddress(ip).is_private():
+        if self._isPrivateIp(ip):
             return False
         return True
 
@@ -1148,7 +1165,7 @@ class SpiderFoot:
         if not self.validIP(ip) and not self.validIP6(ip):
             return False
 
-        if netaddr.IPAddress(ip).is_private():
+        if self._isPrivateIp(ip):
             return True
 
         if netaddr.IPAddress(ip).is_loopback():
@@ -1189,7 +1206,7 @@ class SpiderFoot:
 
         # Never proxy RFC1918 addresses on the LAN or the local network interface
         if self.validIP(host):
-            if netaddr.IPAddress(host).is_private():
+            if self._isPrivateIp(host):
                 return False
             if netaddr.IPAddress(host).is_loopback():
                 return False

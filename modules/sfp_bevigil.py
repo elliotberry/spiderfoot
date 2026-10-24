@@ -91,7 +91,7 @@ class sfp_bevigil(SpiderFootPlugin):
             "INTERNET_NAME",
             "INTERNET_NAME_UNRESOLVED",
             "LINKED_URL_EXTERNAL",
-            "CLOUD_STORAGE_OPEN",
+            "CLOUD_STORAGE_BUCKET_OPEN",
             "RAW_RIR_DATA",
         ]
 
@@ -286,7 +286,7 @@ class sfp_bevigil(SpiderFootPlugin):
             self.results[bucket] = True
 
             evt = SpiderFootEvent(
-                "CLOUD_STORAGE_OPEN", bucket, self.__name__, event)
+                "CLOUD_STORAGE_BUCKET_OPEN", bucket, self.__name__, event)
             self.notifyListeners(evt)
 
 # End of sfp_bevigil class
